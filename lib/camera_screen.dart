@@ -349,7 +349,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: currentMode == MemoryMode.none,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, Object? result) async {
         if (!didPop) {
           if (currentMode == MemoryMode.recording && isRecording) {
             await _cameraManager.stopRecording();
@@ -366,32 +366,44 @@ class _CameraScreenState extends State<CameraScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.menu, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => MemoryListPage()),
-                );
-              },
-            ),
-          ],
+          // actions: [
+          //   IconButton(
+          //     icon: Icon(Icons.menu, color: Colors.white),
+          //     onPressed: () {
+          //       Navigator.push(
+          //         context,
+          //         MaterialPageRoute(builder: (context) => MemoryListPage()),
+          //       );
+          //     },
+          //   ),
+          // ],
         ),
         extendBodyBehindAppBar: true, // 앱바 뒤로 본문 확장
         body: Stack(
           children: [
+            _buildCameraPreview(),
             // 기본 레이아웃
             Column(
               children: [
-                Expanded(flex: 85, child: _buildCameraPreview()),
-                Expanded(
-                  flex: 15,
-                  child: Container(
-                    width: double.infinity,
-                    color: Colors.black,
-                    child: _buildMainButton(),
-                  ),
+                // 앱바 공간 확보
+                SizedBox(
+                  height:
+                      AppBar().preferredSize.height +
+                      MediaQuery.of(context).padding.top,
+                ),
+
+                // 중간 여백 공간 (카메라 프리뷰 공간)
+                Expanded(child: Container()),
+
+                // 옵션 패널
+                _buildOptionsPanel(),
+
+                // 하단 컨트롤 영역
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.15,
+                  width: double.infinity,
+                  color: Colors.black,
+                  child: _buildMainButton(),
                 ),
               ],
             ),

@@ -10,7 +10,13 @@ class MemoryService {
   final _uuid = Uuid();
 
   // 메모리 저장
-  Future<Memory> saveMemory(String videoPath, String memo) async {
+  // 메모리 저장 (위치 정보 포함)
+  Future<Memory> saveMemory(
+    String videoPath,
+    String memo,
+    double? latitude,
+    double? longitude,
+  ) async {
     final memories = await getMemories();
 
     final newMemory = Memory(
@@ -18,6 +24,8 @@ class MemoryService {
       videoPath: videoPath,
       memo: memo,
       createdAt: DateTime.now(),
+      latitude: latitude,
+      longitude: longitude,
     );
 
     memories.add(newMemory);
