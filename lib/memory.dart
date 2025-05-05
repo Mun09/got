@@ -2,7 +2,7 @@ import 'package:geocoding/geocoding.dart';
 
 class Memory {
   final String id; // 고유 식별자
-  final String videoPath; // 동영상 파일 경로
+  final String? videoPath; // 동영상 파일 경로
   final String memo; // 메모 텍스트
   final DateTime createdAt; // 생성 날짜
 
@@ -12,7 +12,7 @@ class Memory {
 
   Memory({
     required this.id,
-    required this.videoPath,
+    this.videoPath,
     required this.memo,
     required this.createdAt,
     required this.latitude,

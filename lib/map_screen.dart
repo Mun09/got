@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:got/memory_list_page.dart';
 import 'package:got/memory_service.dart';
+import 'package:got/sevices/location_service.dart';
+import 'package:got/util.dart';
 
 import 'memory.dart';
 
@@ -14,26 +16,66 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
+class _MapScreenState extends State<MapScreen>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   GoogleMapController? _mapController;
   Position? _currentPosition;
   Set<Marker> _markers = {};
   bool _isLoading = true;
   final MemoryService _memoryService = MemoryService();
+  final LocationService _locationService = LocationService(); // 위치 서비스 인스턴스
+
   int? _lastMemoryCount; // 이전 메모리 개수 저장
+
+  // AutomaticKeepAliveClientMixin 구현
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // 위치 서비스에 리스너 등록
+    _locationService.addListener(_updateLocationFromService);
+
     _initMap();
   }
 
   @override
   void dispose() {
+    // 리스너 제거
+    _locationService.removeListener(_updateLocationFromService);
+    _locationService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+
+  // 위치 서비스로부터 위치 업데이트 받기
+  void _updateLocationFromService() {
+    final position = _locationService.currentPosition;
+
+    if (position != null && mounted) {
+      setState(() {
+        _currentPosition = position;
+      });
+
+      // 지도가 준비되었을 때만 카메라 이동 (선택적)
+      if (_mapController != null && _isFirstLoad) {
+        _isFirstLoad = false;
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(position.latitude, position.longitude),
+              zoom: 15,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  bool _isFirstLoad = true; // 첫 로드 여부 확인 (카메라 이동용)
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -45,7 +87,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _checkForMemoryChanges();
+    if (_lastMemoryCount != null) {
+      _checkForMemoryChanges();
+    }
   }
 
   // 메모리 변화 확인
@@ -70,52 +114,16 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     });
 
     try {
-      // 위치 권한 확인
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() {
-            _isLoading = false;
-          });
-          _showErrorSnackbar('위치 권한이 거부되었습니다');
-          await _loadMemoryMarkers();
-          return;
-        }
-      }
+      // 현재 위치가 없는 경우에만 새로 가져오기 (이미 있으면 재사용)
+      final position = _locationService.currentPosition;
 
-      if (permission == LocationPermission.deniedForever) {
+      if (position != null) {
         setState(() {
-          _isLoading = false;
+          _currentPosition = position;
         });
-        _showErrorSnackbar('위치 권한이 영구적으로 거부되었습니다');
-        await _loadMemoryMarkers();
-        return;
-      }
-
-      // 현재 위치 가져오기
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      setState(() {
-        _currentPosition = position;
-        _isLoading = false;
-      });
-
-      // 맵 컨트롤러가 이미 초기화되어 있다면 현재 위치로 이동
-      if (_mapController != null && _currentPosition != null) {
-        _mapController!.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: LatLng(
-                _currentPosition!.latitude,
-                _currentPosition!.longitude,
-              ),
-              zoom: 15,
-            ),
-          ),
-        );
+      } else {
+        // 위치 서비스에 위치 요청
+        await _locationService.getCurrentLocation();
       }
 
       // 메모리 마커 로드
@@ -134,23 +142,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     try {
       final memories = await _memoryService.getMemories();
       Set<Marker> markers = {};
-
-      // 현재 위치 마커 추가
-      if (_currentPosition != null) {
-        markers.add(
-          Marker(
-            markerId: MarkerId('current_location'),
-            position: LatLng(
-              _currentPosition!.latitude,
-              _currentPosition!.longitude,
-            ),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueBlue,
-            ),
-            infoWindow: InfoWindow(title: '현재 위치'),
-          ),
-        );
-      }
 
       // 메모리 마커 추가 작업을 병렬로 처리
       final List<Future<Marker?>> markerFutures = [];
@@ -195,7 +186,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: InfoWindow(
           title: [
-            memory.videoPath != '' ? '비디오 있음' : '',
+            isMediaExist(memory) ? '미디어 있음' : '',
             memory.memo != '' ? '메모 있음' : '',
             (memory.longitude != null && memory.latitude != null)
                 ? '위치 정보 있음'
@@ -216,9 +207,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
 
-    // 현재 위치로 카메라 이동
+    // 약간의 지연을 주어 지도가 완전히 로드된 후 카메라를 이동시킴
     if (_currentPosition != null) {
-      controller.animateCamera(
+      _mapController!.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
             target: LatLng(
@@ -229,6 +220,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
           ),
         ),
       );
+      print(
+        '카메라 이동: ${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+      );
     }
   }
 
@@ -238,26 +232,15 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     );
   }
 
-  // 메모리 리스트 이동 코드 수정
-  void _navigateToMemoryList() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => MemoryListPage()),
-    );
-
-    // 화면에서 돌아왔을 때 무조건 마커 다시 로드
-    await _loadMemoryMarkers();
-  }
-
+  // 빌드 메서드에 위치 추적 토글 버튼 추가
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text('메모리 지도'),
-        actions: [
-          IconButton(icon: Icon(Icons.refresh), onPressed: _initMap),
-          IconButton(icon: Icon(Icons.list), onPressed: _navigateToMemoryList),
-        ],
+        actions: [IconButton(icon: Icon(Icons.refresh), onPressed: _initMap)],
       ),
       body:
           _isLoading
@@ -265,6 +248,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
               : GoogleMap(
                 onMapCreated: _onMapCreated,
                 initialCameraPosition: CameraPosition(
+                  // _currentPosition이 있으면 현재 위치를 초기 위치로 설정
                   target:
                       _currentPosition != null
                           ? LatLng(

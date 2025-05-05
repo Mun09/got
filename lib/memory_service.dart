@@ -12,7 +12,7 @@ class MemoryService {
   // 메모리 저장
   // 메모리 저장 (위치 정보 포함)
   Future<Memory> saveMemory(
-    String videoPath,
+    String? videoPath,
     String memo,
     double? latitude,
     double? longitude,
@@ -55,14 +55,16 @@ class MemoryService {
     final memories = await getMemories();
     final memory = memories.firstWhere((mem) => mem.id == id);
 
-    // 비디오 파일 삭제
-    try {
-      final videoFile = File(memory.videoPath);
-      if (await videoFile.exists()) {
-        await videoFile.delete();
+    // 비디오 파일 삭제 (videoPath가 있을 경우에만)
+    if (memory.videoPath != null && memory.videoPath!.isNotEmpty) {
+      try {
+        final videoFile = File(memory.videoPath!);
+        if (await videoFile.exists()) {
+          await videoFile.delete();
+        }
+      } catch (e) {
+        print('미디어 파일 삭제 오류: $e');
       }
-    } catch (e) {
-      print('비디오 파일 삭제 오류: $e');
     }
 
     // 메모리 목록에서 제거
