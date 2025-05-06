@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../util/util.dart';
-import '../memory.dart';
+import '../models/memory.dart';
 
 class MediaDisplayWidget extends StatefulWidget {
   final Memory memory;

@@ -5,7 +5,7 @@ import 'package:got/util/util.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
-import 'memory.dart';
+import 'models/memory.dart';
 import 'memory_detail_page.dart';
 import 'sevices/memory_service.dart';
 

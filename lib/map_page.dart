@@ -8,7 +8,7 @@ import 'package:got/sevices/location_service.dart';
 import 'package:got/util/util.dart';
 import 'package:provider/provider.dart';
 
-import 'memory.dart';
+import 'models/memory.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);

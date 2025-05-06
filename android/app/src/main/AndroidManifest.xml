@@ -1,12 +1,78 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- 추가 권한 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- 갤러리 접근 권한 (Android 13 이상) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+
+    <!-- 갤러리 접근 권한 (Android 12 이하) -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> <!-- 백그라운드 위치 권한 -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />-->
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />-->
+    <!--    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />-->
+
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
 
     <application
         android:label="got"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <service
+            android:name=".CameraWidgetBackgroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="camera|location" />
+
+        <!-- 위젯 정보 등록 -->
+        <receiver
+            android:name=".CameraWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/camera_widget_info" />
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- 위젯 서비스 등록 -->
+        <!--        <service-->
+        <!--            android:name=".CameraWidgetService"-->
+        <!--            android:exported="false"-->
+        <!--            android:foregroundServiceType="camera|location" />-->
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"

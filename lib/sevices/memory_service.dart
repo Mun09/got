@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import '../memory.dart';
+import '../models/memory.dart';
+import '../util/util.dart';
 
 class MemoryService extends ChangeNotifier {
   Database? _database;
@@ -29,8 +30,8 @@ class MemoryService extends ChangeNotifier {
 
   // 데이터베이스 초기화
   Future<Database> initDatabase() async {
-    if (_database != null) return _database!;
-
+    if (_database != null && (await _database!.getVersion() >= 2))
+      return _database!;
     // 데이터베이스 파일 위치 설정
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, 'memories.db');
@@ -38,11 +39,12 @@ class MemoryService extends ChangeNotifier {
     // 데이터베이스 생성 및 테이블 생성
     _database = await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE memories (
             id TEXT PRIMARY KEY,
+            fileName TEXT NOT NULL,
             videoPath TEXT,
             memo TEXT NOT NULL, 
             createdAt TEXT NOT NULL,
@@ -50,6 +52,12 @@ class MemoryService extends ChangeNotifier {
             longitude REAL
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // 기존 테이블에 fileName 컬럼 추가
+          await db.execute('ALTER TABLE memories ADD COLUMN fileName TEXT');
+        }
       },
     );
 
@@ -69,6 +77,7 @@ class MemoryService extends ChangeNotifier {
           maps.map((map) {
             return Memory(
               id: map['id'],
+              fileName: map['fileName'],
               filePath: map['videoPath'],
               memo: map['memo'],
               createdAt: DateTime.parse(map['createdAt']),
@@ -93,7 +102,8 @@ class MemoryService extends ChangeNotifier {
 
   // 메모리 저장
   Future<Memory> saveMemory(
-    String? videoPath,
+    String? filePath,
+    String fileName,
     String memo,
     double? latitude,
     double? longitude,
@@ -106,11 +116,20 @@ class MemoryService extends ChangeNotifier {
 
       // UUID 생성
       String id = DateTime.now().millisecondsSinceEpoch.toString();
+      var outputPath = '';
+      if (filePath != null) {
+        final directory = await getApplicationDocumentsDirectory();
+        String extension = isVideoFile(filePath) ? '.mp4' : '.jpg';
+        final File sourceFile = File(filePath);
+        outputPath = '${directory.path}/${fileName}-${id}$extension';
+        await sourceFile.copy(outputPath);
+      }
 
       // 새로운 메모리 객체 생성
       final newMemory = Memory(
         id: id,
-        filePath: videoPath,
+        fileName: fileName,
+        filePath: outputPath,
         memo: memo,
         createdAt: DateTime.now(),
         latitude: latitude,
@@ -120,6 +139,7 @@ class MemoryService extends ChangeNotifier {
       // DB에 저장
       await db.insert('memories', {
         'id': newMemory.id,
+        'fileName': newMemory.fileName,
         'videoPath': newMemory.filePath,
         'memo': newMemory.memo,
         'createdAt': newMemory.createdAt.toIso8601String(),
@@ -233,6 +253,7 @@ class MemoryService extends ChangeNotifier {
           maps.map((map) {
             return Memory(
               id: map['id'],
+              fileName: map['fileName'],
               filePath: map['videoPath'],
               memo: map['memo'],
               createdAt: DateTime.parse(map['createdAt']),
@@ -267,6 +288,7 @@ class MemoryService extends ChangeNotifier {
       if (maps.isNotEmpty) {
         return Memory(
           id: maps[0]['id'],
+          fileName: maps[0]['fileName'],
           filePath: maps[0]['videoPath'],
           memo: maps[0]['memo'],
           createdAt: DateTime.parse(maps[0]['createdAt']),

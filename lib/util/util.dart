@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:intl/intl.dart';
 
-import '../memory.dart';
+import '../models/memory.dart';
 
 bool isImageFile(String path) {
   final lowerPath = path.toLowerCase();

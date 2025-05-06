@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:got/main_page.dart';
 import 'package:got/sevices/location_service.dart';
 import 'package:got/sevices/memory_service.dart';
+import 'package:got/sevices/widget_service.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -11,6 +12,9 @@ Future<void> main() async {
   // 위치 서비스 초기화
   final locationService = LocationService();
   await locationService.initialize();
+
+  // 위젯 서비스 초기화
+  await WidgetService.initialize();
 
   runApp(
     MultiProvider(

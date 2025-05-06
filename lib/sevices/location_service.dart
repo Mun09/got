@@ -69,7 +69,7 @@ class LocationService extends ChangeNotifier {
         distanceFilter: 10,
       ),
     ).listen((Position position) async {
-      print("위치 업데이트: $position");
+      // print("위치 업데이트: $position");
       _currentPosition = position;
       await _updateAddressFromPosition();
       notifyListeners();
@@ -97,6 +97,41 @@ class LocationService extends ChangeNotifier {
     } catch (e) {
       _currentAddress = "주소를 가져올 수 없습니다";
       print('주소 변환 오류: $e');
+    }
+  }
+
+  // 백그라운드에서 위치 정보 가져오기
+  Future<Position?> getBackgroundLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // 위치 서비스가 활성화되어 있는지 확인
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      print("위치 서비스가 비활성화되어 있습니다.");
+      return null; // 백그라운드에서는 사용자에게 알림을 표시할 수 없음
+    }
+
+    // 위치 권한 확인
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever ||
+        permission == LocationPermission.unableToDetermine) {
+      print("위치 권한이 거부되었습니다.");
+      return null; // 백그라운드에서는 권한 요청 불가
+    }
+
+    // 백그라운드 위치 업데이트를 위해 LocationSettings 사용
+    try {
+      print("백그라운드 위치 가져오기 시도");
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        forceAndroidLocationManager: true, // 안드로이드에서 더 안정적인 백그라운드 동작
+        timeLimit: const Duration(seconds: 30), // 타임아웃 설정
+      );
+    } catch (e) {
+      print('백그라운드 위치 가져오기 실패: $e');
+      return null;
     }
   }
 

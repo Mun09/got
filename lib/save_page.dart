@@ -364,7 +364,8 @@ class _FileSavePageState extends State<FileSavePage> {
           _locationService.currentPosition?.longitude;
 
       await memoryService.saveMemory(
-        outputPath,
+        _currentFile?.path,
+        _filenameController.text,
         _memoController.text,
         latitude,
         longitude,

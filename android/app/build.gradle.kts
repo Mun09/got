@@ -38,6 +38,17 @@ android {
         }
     }
 }
+dependencies {
+    implementation("androidx.camera:camera-core:1.4.2")
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
+    implementation("androidx.lifecycle:lifecycle-runtime:2.8.7")
+
+    // Guava 의존성 추가
+    implementation("com.google.guava:guava:33.0.0-android")
+
+}
 
 flutter {
     source = "../.."

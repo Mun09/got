@@ -4,7 +4,7 @@ import 'package:got/util/util.dart';
 import 'package:got/widget/media_display_widget.dart';
 import 'package:provider/provider.dart';
 
-import 'memory.dart';
+import 'models/memory.dart';
 
 class MemoryDetailPage extends StatefulWidget {
   final Memory memory;
