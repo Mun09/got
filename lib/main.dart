@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:got/main_page.dart';
 import 'package:got/sevices/location_service.dart';
+import 'package:got/sevices/memory_service.dart';
+import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -8,7 +11,16 @@ Future<void> main() async {
   // 위치 서비스 초기화
   final locationService = LocationService();
   await locationService.initialize();
-  runApp(MyApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocationService()),
+        ChangeNotifierProvider(create: (_) => MemoryService()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -18,9 +30,62 @@ class MyApp extends StatelessWidget {
       title: 'GOT 앱',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        // 기본 색상 설정
+        primaryColor: Colors.white,
+        scaffoldBackgroundColor: Colors.white,
+
+        // AppBar 테마
+        appBarTheme: AppBarTheme(
+          elevation: 0.5,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.grey[800],
+          iconTheme: IconThemeData(color: Colors.grey[800]),
+          titleTextStyle: TextStyle(
+            color: Colors.grey[800],
+            fontWeight: FontWeight.w500,
+            fontSize: 18,
+          ),
+        ),
+
+        // 버튼 테마
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey[800],
+            foregroundColor: Colors.white,
+          ),
+        ),
+
+        // 텍스트 버튼 테마
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: Colors.grey[800]),
+        ),
+
+        // FloatingActionButton 테마
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: Colors.grey[800],
+          foregroundColor: Colors.white,
+        ),
+
+        // 다이얼로그 테마
+        dialogTheme: DialogTheme(
+          backgroundColor: Colors.white,
+          titleTextStyle: TextStyle(
+            color: Colors.grey[800],
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+          contentTextStyle: TextStyle(color: Colors.grey[700], fontSize: 16),
+        ),
+
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: Colors.grey[800],
+          contentTextStyle: TextStyle(color: Colors.white),
+          actionTextColor: Colors.white,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
       ),
+
       home: MainPage(), // 바텀 네비게이션이 포함된 메인 페이지로 시작
     );
   }

@@ -1,6 +1,8 @@
 import 'dart:io';
 
-import 'memory.dart';
+import 'package:intl/intl.dart';
+
+import '../memory.dart';
 
 bool isImageFile(String path) {
   final lowerPath = path.toLowerCase();
@@ -23,8 +25,11 @@ bool isVideoFile(String path) {
 }
 
 bool isMediaExist(Memory memory) {
-  final bool hasVideoPath =
-      memory.videoPath != null && memory.videoPath!.isNotEmpty;
-  final bool videoExists = hasVideoPath && File(memory.videoPath!).existsSync();
-  return videoExists;
+  final bool hasFilePath =
+      memory.filePath != null && memory.filePath!.isNotEmpty;
+  return hasFilePath && File(memory.filePath!).existsSync();
+}
+
+String formatDate(DateTime dateTime) {
+  return DateFormat('yyyy년 MM월 dd일 HH:mm').format(dateTime);
 }

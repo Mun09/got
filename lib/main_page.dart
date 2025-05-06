@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:got/map_screen.dart';
+import 'package:got/map_page.dart';
 import 'package:got/memory_list_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -27,8 +27,8 @@ class _MainPageState extends State<MainPage> {
           });
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: '지도'),
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: '메모'),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: '곳 지도'),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: '새 곳'),
         ],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,

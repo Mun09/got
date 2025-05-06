@@ -10,7 +10,16 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="${mapsApiKey}"/>
+            android:value="${mapsApiKey}" />
+
+        <!-- Map ID 메타데이터 추가 -->
+        <meta-data
+            android:name="com.google.android.geo.MAP_ID"
+            android:value="${mapId}" />
+
+        <meta-data
+            android:name="com.google.android.maps.v2.RENDERER_MODE"
+            android:value="${mapRendererMode}" />
 
         <activity
             android:name=".MainActivity"

@@ -28,6 +28,8 @@ android {
         versionName = flutter.versionName
 
         manifestPlaceholders["mapsApiKey"] = getApiKey()
+        manifestPlaceholders["mapId"] = getMapId()
+        manifestPlaceholders["mapRendererMode"] = "latest" // 또는 "legacy"
     }
 
     buildTypes {
@@ -55,3 +57,14 @@ fun getApiKey(): String {
     }
 }
 
+// Map ID 가져오는 함수 추가
+fun getMapId(): String {
+    val propFile = rootProject.file("local.properties")
+    return if (propFile.exists()) {
+        val properties = Properties()
+        propFile.inputStream().use { properties.load(it) }
+        properties.getProperty("mapId") ?: ""
+    } else {
+        ""
+    }
+}

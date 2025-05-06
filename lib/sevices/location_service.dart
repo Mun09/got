@@ -69,6 +69,7 @@ class LocationService extends ChangeNotifier {
         distanceFilter: 10,
       ),
     ).listen((Position position) async {
+      print("위치 업데이트: $position");
       _currentPosition = position;
       await _updateAddressFromPosition();
       notifyListeners();

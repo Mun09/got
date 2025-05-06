@@ -2,7 +2,7 @@ import 'package:geocoding/geocoding.dart';
 
 class Memory {
   final String id; // 고유 식별자
-  final String? videoPath; // 동영상 파일 경로
+  final String? filePath; // 동영상 파일 경로
   final String memo; // 메모 텍스트
   final DateTime createdAt; // 생성 날짜
 
@@ -12,7 +12,7 @@ class Memory {
 
   Memory({
     required this.id,
-    this.videoPath,
+    this.filePath,
     required this.memo,
     required this.createdAt,
     required this.latitude,
@@ -23,7 +23,7 @@ class Memory {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'videoPath': videoPath,
+      'videoPath': filePath,
       'memo': memo,
       'createdAt': createdAt.toIso8601String(),
       'latitude': latitude,
@@ -98,7 +98,7 @@ class Memory {
   factory Memory.fromJson(Map<String, dynamic> json) {
     return Memory(
       id: json['id'],
-      videoPath: json['videoPath'],
+      filePath: json['videoPath'],
       memo: json['memo'],
       createdAt: DateTime.parse(json['createdAt']),
       latitude: json['latitude'],
