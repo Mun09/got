@@ -188,6 +188,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                     ],
                   ),
           floatingActionButton: FloatingActionButton(
+            heroTag: 'map_fab',
             onPressed: _refreshMap,
             child: Icon(Icons.my_location),
             tooltip: '내 위치로 이동',

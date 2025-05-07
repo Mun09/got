@@ -23,7 +23,6 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => LocationService()),
         ChangeNotifierProvider(create: (_) => MemoryService()),
-        ChangeNotifierProvider(create: (_) => MapState()),
       ],
       child: MyApp(),
     ),

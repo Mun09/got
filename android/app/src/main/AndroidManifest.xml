@@ -68,12 +68,6 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- 위젯 서비스 등록 -->
-        <!--        <service-->
-        <!--            android:name=".CameraWidgetService"-->
-        <!--            android:exported="false"-->
-        <!--            android:foregroundServiceType="camera|location" />-->
-
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />
