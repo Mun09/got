@@ -17,16 +17,12 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen>
-    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
-  GoogleMapController? _mapController;
+class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
+  late GoogleMapController? _mapController;
+  late bool _isMapReady = false;
   Set<Marker> _markers = {};
-  bool _isMapReady = false;
-  bool _isFirstLoad = true;
 
   // AutomaticKeepAliveClientMixin 구현
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -72,7 +68,7 @@ class _MapScreenState extends State<MapScreen>
     );
     final position = locationService.currentPosition;
 
-    if (position != null && _isFirstLoad) {
+    if (position != null) {
       _mapController!.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
@@ -81,7 +77,6 @@ class _MapScreenState extends State<MapScreen>
           ),
         ),
       );
-      _isFirstLoad = false;
     }
   }
 
@@ -120,11 +115,6 @@ class _MapScreenState extends State<MapScreen>
     }
   }
 
-  void navigateToMemoryDetail(Memory memory) {
-    // 메모리 상세 페이지로 이동하는 코드
-    // Navigator.push(context, MaterialPageRoute(...));
-  }
-
   void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
@@ -148,8 +138,6 @@ class _MapScreenState extends State<MapScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-
     return Consumer2<LocationService, MemoryService>(
       builder: (context, locationService, memoryService, child) {
         // 메모리 로딩 상태 및 위치 로딩 상태 확인
@@ -232,4 +220,6 @@ class _MapScreenState extends State<MapScreen>
       });
     }
   }
+
+  void navigateToMemoryDetail(Memory memory) {}
 }

@@ -6,6 +6,8 @@ import 'package:got/sevices/memory_service.dart';
 import 'package:got/sevices/widget_service.dart';
 import 'package:provider/provider.dart';
 
+import 'map_state.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,6 +23,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => LocationService()),
         ChangeNotifierProvider(create: (_) => MemoryService()),
+        ChangeNotifierProvider(create: (_) => MapState()),
       ],
       child: MyApp(),
     ),

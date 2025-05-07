@@ -1,12 +1,7 @@
 package com.got.got
 
 import android.content.Context
-import android.hardware.camera2.CameraAccessException
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
 import android.net.Uri
-import android.os.Environment
 import android.util.Log
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider

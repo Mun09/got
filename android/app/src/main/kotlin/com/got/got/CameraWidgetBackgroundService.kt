@@ -10,7 +10,9 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -63,7 +65,13 @@ class CameraWidgetBackgroundService : Service() {
         acquireWakeLock()
 
         // Flutter 엔진 초기화
-        initializeFlutterEngine()
+
+    }
+
+    private fun getOrCreateFlutterEngine() {
+        if (flutterEngine == null) {
+            initializeFlutterEngine()
+        }
     }
 
     private fun createNotificationChannel() {
@@ -99,7 +107,7 @@ class CameraWidgetBackgroundService : Service() {
             PowerManager.PARTIAL_WAKE_LOCK,
             "GOT::CameraWidgetWakeLock"
         )
-        wakeLock?.acquire(10 * 60 * 1000L) // 10분 동안 WakeLock 유지
+        wakeLock?.acquire(30 * 1000L) // 30초 동안 WakeLock 유지
     }
 
     private fun initializeFlutterEngine() {
@@ -148,15 +156,36 @@ class CameraWidgetBackgroundService : Service() {
         }
     }
 
+    private var shouldRun = true
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "서비스 시작 명령 수신")
+        Log.d(TAG, "서비스 시작 명령 수신: ${intent?.action}")
 
-        if (intent?.action == "TAKE_PHOTO") {
-            takePhotoAndProcess()
-        }
+        when (intent?.action) {
+            "TAKE_PHOTO" -> {
+                takePhotoAndProcess()
+            }
 
-        // 서비스가 종료되면 자동으로 재시작
-        return START_STICKY
+            "STOP_SERVICE" -> {
+                Log.d(TAG, "서비스 종료 요청 수신")
+                shouldRun = false
+                _stopForeground();
+                stopSelf()
+                return START_NOT_STICKY
+            }
+        }    // 작업 완료 후 자동 종료를 위한 타이머 설정
+        // 최대 1분 후에 자동 종료
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (shouldRun) {
+                Log.d(TAG, "시간 초과로 서비스 자동 종료")
+                _stopForeground()
+                stopSelf()
+            }
+        }, 60 * 1000L) // 1분
+
+        // 서비스가 종료되더라도 자동으로 재시작하지 않음
+        // 배터리 최적화
+        return START_NOT_STICKY
     }
 
     private fun takePhotoAndProcess() {
@@ -175,6 +204,7 @@ class CameraWidgetBackgroundService : Service() {
     private fun processImage(imagePath: String) {
         // 위치 정보 가져오기
         try {
+            getOrCreateFlutterEngine()
             if (locationPermissionGranted()) {
                 getCurrentLocation { location ->
                     if (location != null) {
@@ -186,7 +216,7 @@ class CameraWidgetBackgroundService : Service() {
                             args["longitude"] = location.longitude
 
                             backgroundChannel?.invokeMethod("processImage", args)
-                            Log.d(
+                            logDebug(
                                 TAG,
                                 "위치 정보와 함께 이미지 처리: $imagePath, 위치: ${location.latitude}, ${location.longitude}"
                             )
@@ -219,6 +249,35 @@ class CameraWidgetBackgroundService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "이미지 처리 중 오류 발생", e)
         }
+
+        setServiceShutdownTimer(5000L) // 5초 후 종료
+        releaseWakeLockIfNeeded();
+    }
+
+    // 중복 타이머 설정을 방지하기 위한 변수
+    private var shutdownTimerSet = false
+
+    private fun setServiceShutdownTimer(delayMillis: Long) {
+        if (!shutdownTimerSet) {
+            shutdownTimerSet = true
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (shouldRun) {
+                    Log.d(TAG, "작업 완료 후 서비스 종료")
+                    _stopForeground()
+                    stopSelf()
+                }
+            }, delayMillis)
+        }
+    }
+
+    // 이미지 처리 완료 후 WakeLock 해제
+    private fun releaseWakeLockIfNeeded() {
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+                Log.d(TAG, "WakeLock 해제됨")
+            }
+        }
     }
 
     // 현재 위치 가져오기
@@ -244,7 +303,7 @@ class CameraWidgetBackgroundService : Service() {
             }
 
             // 실시간 위치 업데이트 요청
-            val locationTimeout = 10000L // 10초 제한
+            val locationTimeout = 5000L // 10초 제한
             var locationReceived = false
 
             // GPS 또는 네트워크 제공자 사용
@@ -318,11 +377,7 @@ class CameraWidgetBackgroundService : Service() {
 
     override fun onDestroy() {
         Log.d(TAG, "서비스 종료")
-        wakeLock?.let {
-            if (it.isHeld) {
-                it.release()
-            }
-        }
+        releaseWakeLockIfNeeded()
 
         try {
             locationManager?.removeUpdates(locationListener)
@@ -340,5 +395,15 @@ class CameraWidgetBackgroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
+    }
+
+    fun _stopForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { // API 24-32
+            stopForeground(true)
+        } else { // API 23 이하
+            stopForeground(true)
+        }
     }
 }

@@ -19,8 +19,8 @@ void widgetCameraCallback() async {
 }
 
 class WidgetService {
-  static const platform = MethodChannel('com.got.got/camera_widget');
-  static const backgroundChannel = MethodChannel(
+  static const foregroundPlatform = MethodChannel('com.got.got/camera_widget');
+  static const backgroundPlatform = MethodChannel(
     'com.got.got/background_service',
   );
 
@@ -40,7 +40,7 @@ class WidgetService {
 
       // 네이티브에 콜백 ID 전달
       try {
-        await platform.invokeMethod('registerCallback', {
+        await foregroundPlatform.invokeMethod('registerCallback', {
           'callbackHandle': callback,
         });
       } catch (e) {
@@ -49,18 +49,19 @@ class WidgetService {
     }
 
     // 메서드 채널 리스너 설정
-    platform.setMethodCallHandler(_handleMethodCall);
-    backgroundChannel.setMethodCallHandler(_handleBackgroundCall);
+    foregroundPlatform.setMethodCallHandler(_handleMethodCall);
+    backgroundPlatform.setMethodCallHandler(_handleBackgroundCall);
   }
 
   // 메인 메서드 채널 핸들러
   static Future<dynamic> _handleMethodCall(MethodCall call) async {
-    if (call.method == 'imagePathFromNative') {
-      // 네이티브에서 자동 촬영된 이미지 경로 받기
-      final imagePath = call.arguments as String;
-      await processImageFromNative(imagePath);
-    } else if (call.method == 'onCameraError') {
-      print('카메라 오류: ${call.arguments}');
+    if (call.method == 'processBackgroundImage') {
+      // 백그라운드에서 저장된 이미지 처리
+      final imagePath = call.arguments['imagePath'] as String;
+      final latitude = call.arguments['latitude'] as double?;
+      final longitude = call.arguments['longitude'] as double?;
+
+      await _processBackgroundImage(imagePath, latitude, longitude);
     }
     return null;
   }
