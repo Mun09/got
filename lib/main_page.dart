@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:got/map_page.dart';
 import 'package:got/memory_list_page.dart';
-import 'package:got/sevices/permission_service.dart';
+import 'package:got/services/permission_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MainPage extends StatefulWidget {

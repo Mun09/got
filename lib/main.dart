@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:got/main_page.dart';
-import 'package:got/sevices/location_service.dart';
-import 'package:got/sevices/memory_service.dart';
-import 'package:got/sevices/widget_service.dart';
+import 'package:got/services/location_service.dart';
+import 'package:got/services/memory_service.dart';
+import 'package:got/services/widget_service.dart';
 import 'package:provider/provider.dart';
-
-import 'map_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +37,11 @@ class MyApp extends StatelessWidget {
         // 기본 색상 설정
         primaryColor: Colors.white,
         scaffoldBackgroundColor: Colors.white,
+        fontFamily: 'dosSamemul',
+        textTheme: TextTheme(
+          bodyMedium: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        // 폰트 설정
 
         // AppBar 테마
         appBarTheme: AppBarTheme(
@@ -48,7 +51,8 @@ class MyApp extends StatelessWidget {
           iconTheme: IconThemeData(color: Colors.grey[800]),
           titleTextStyle: TextStyle(
             color: Colors.grey[800],
-            fontWeight: FontWeight.w500,
+            fontFamily: 'dosSamemul',
+            fontWeight: FontWeight.w800,
             fontSize: 18,
           ),
         ),

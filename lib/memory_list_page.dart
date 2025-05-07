@@ -1,14 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:got/save_page.dart';
-import 'package:got/util/util.dart';
+import 'package:got/services/memory_service.dart';
 import 'package:provider/provider.dart';
 
 import 'memory_list_page/build_memory_item_widget.dart';
-import 'memory_list_page/build_thumbnail.dart';
 import 'models/memory.dart';
-import 'memory_detail_page.dart';
-import 'sevices/memory_service.dart';
 
 class MemoryListPage extends StatefulWidget {
   const MemoryListPage({Key? key}) : super(key: key);
@@ -30,30 +26,6 @@ class _MemoryListPageState extends State<MemoryListPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<MemoryService>(context, listen: false).loadMemories();
     });
-  }
-
-  // 메모리 삭제 기능 - 이제 Provider를 통해 처리
-  Future<void> _deleteMemory(Memory memory) async {
-    try {
-      await Provider.of<MemoryService>(
-        context,
-        listen: false,
-      ).deleteMemory(memory.id);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('기록이 삭제되었습니다'),
-          backgroundColor: Colors.grey[800],
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('삭제 중 오류가 발생했습니다: $e'),
-          backgroundColor: Colors.grey[800],
-        ),
-      );
-    }
   }
 
   // 선택한 메모리 삭제
@@ -169,88 +141,23 @@ class _MemoryListPageState extends State<MemoryListPage> {
       title: Text('나의 곳', style: TextStyle(color: Colors.grey[800])),
       centerTitle: true,
       actions: [
-        // 그리드 뷰 토글 버튼 추가
-        PopupMenuButton<int>(
-          icon: Icon(Icons.grid_view, color: Colors.grey[800]),
-          onSelected: _changeGridColumnCount,
-          itemBuilder:
-              (context) => [
-                PopupMenuItem(
-                  value: 2,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.grid_view,
-                        color:
-                            _gridColumnCount == 2
-                                ? Colors.blue
-                                : Colors.grey[800],
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        '2열',
-                        style: TextStyle(
-                          fontWeight:
-                              _gridColumnCount == 2
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 3,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.grid_3x3,
-                        color:
-                            _gridColumnCount == 3
-                                ? Colors.blue
-                                : Colors.grey[800],
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        '3열',
-                        style: TextStyle(
-                          fontWeight:
-                              _gridColumnCount == 3
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 4,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.grid_4x4,
-                        color:
-                            _gridColumnCount == 4
-                                ? Colors.blue
-                                : Colors.grey[800],
-                        size: 20,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        '4열',
-                        style: TextStyle(
-                          fontWeight:
-                              _gridColumnCount == 4
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        IconButton(
+          icon:
+              _gridColumnCount == 2
+                  ? Icon(Icons.grid_view, color: Colors.grey[800])
+                  : _gridColumnCount == 3
+                  ? Icon(Icons.grid_3x3, color: Colors.grey[800])
+                  : Icon(Icons.grid_4x4, color: Colors.grey[800]),
+          onPressed: () {
+            setState(() {
+              // 2 -> 3 -> 4 -> 2 순환
+              _gridColumnCount =
+                  _gridColumnCount >= 4 ? 2 : _gridColumnCount + 1;
+            });
+          },
+          tooltip: '${_gridColumnCount + 1}열로 보기',
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
         ),
       ],
     );
@@ -329,6 +236,8 @@ class _MemoryListPageState extends State<MemoryListPage> {
       leading: IconButton(
         icon: Icon(Icons.close, color: Colors.grey[800]),
         onPressed: _toggleSelectionMode,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
       ),
       title: Text(
         '${_selectedMemories.length}개 선택됨',
@@ -338,6 +247,8 @@ class _MemoryListPageState extends State<MemoryListPage> {
         IconButton(
           icon: Icon(Icons.delete, color: Colors.grey[800]),
           onPressed: _deleteSelectedMemories,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
         ),
       ],
     );
@@ -358,11 +269,11 @@ class _MemoryListPageState extends State<MemoryListPage> {
           SizedBox(height: 24),
           ElevatedButton(
             onPressed: _navigateToSavePage,
-            child: Text('첫 기록 남기기', style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.grey[800],
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
+            child: Text('첫 기록 남기기', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

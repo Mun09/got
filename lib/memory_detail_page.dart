@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:got/sevices/memory_service.dart';
+import 'package:got/services/memory_service.dart';
 import 'package:got/util/util.dart';
 import 'package:got/widget/media_display_widget.dart';
 import 'package:provider/provider.dart';

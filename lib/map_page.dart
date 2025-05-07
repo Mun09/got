@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:got/sevices/memory_service.dart';
-import 'package:got/sevices/location_service.dart';
+import 'package:got/services/location_service.dart';
+import 'package:got/services/memory_service.dart';
+
 import 'package:got/util/util.dart';
 import 'package:provider/provider.dart';
 
@@ -190,8 +190,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
           floatingActionButton: FloatingActionButton(
             heroTag: 'map_fab',
             onPressed: _refreshMap,
-            child: Icon(Icons.my_location),
             tooltip: '내 위치로 이동',
+            child: Icon(Icons.my_location),
           ),
         );
       },
@@ -201,7 +201,6 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   // 메모리 목록에서 마커 생성
   Future<void> _buildMarkers(List<Memory> memories) async {
     // 이미 마커가 생성되었고 메모리 수가 같으면 다시 생성하지 않음
-    if (_markers.length == memories.length && _markers.isNotEmpty) return;
 
     Set<Marker> newMarkers = {};
     List<Future<Marker?>> markerFutures = [];
@@ -215,7 +214,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     final results = await Future.wait(markerFutures);
     newMarkers.addAll(results.whereType<Marker>());
 
-    if (mounted && newMarkers.isNotEmpty) {
+    if (mounted) {
       setState(() {
         _markers = newMarkers;
       });

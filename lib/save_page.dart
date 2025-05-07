@@ -1,22 +1,22 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:got/services/location_service.dart';
+import 'package:got/services/memory_service.dart';
 import 'package:got/widget/location_picker_dialog_widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import 'camera_screen.dart';
-import 'sevices/location_service.dart';
-import 'sevices/memory_service.dart';
 import 'util/util.dart';
 import 'widget/location_info_widget.dart';
 import 'widget/map_preview_widget.dart';
 import 'widget/media_widget.dart';
+import 'package:path/path.dart' as path;
 
 class FileSavePage extends StatefulWidget {
   const FileSavePage({Key? key}) : super(key: key);
@@ -332,11 +332,49 @@ class _FileSavePageState extends State<FileSavePage> {
     );
   }
 
+  AlertDialog _alertDialog(
+    String text,
+    IconData showIcon,
+    Color? textColor,
+    Color? iconColor,
+  ) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(showIcon, color: iconColor ?? Colors.green, size: 60),
+          SizedBox(height: 16),
+          Text(
+            text,
+            style: TextStyle(
+              fontFamily: 'dosSamemul',
+              fontWeight: FontWeight.w800,
+              color: textColor ?? Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _saveFile() async {
     if (_filenameController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('파일 이름을 입력해주세요')));
+      showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          // 1초 후에 다이얼로그를 자동으로 닫습니다
+          Future.delayed(Duration(seconds: 1), () {
+            if (mounted) Navigator.of(dialogContext).pop();
+          });
+          return _alertDialog(
+            "파일 이름을 입력해주세요",
+            Icons.warning,
+            Colors.black,
+            Colors.red,
+          );
+        },
+      );
       return;
     }
 
@@ -348,7 +386,11 @@ class _FileSavePageState extends State<FileSavePage> {
 
       if (_currentFile != null) {
         final directory = await getApplicationDocumentsDirectory();
-        String extension = isVideoFile(_currentFile!.path) ? '.mp4' : '.jpg';
+        String extension =
+            path.extension(_currentFile!.path).toLowerCase().isNotEmpty
+                ? path.extension(_currentFile!.path).toLowerCase()
+                : (isVideoFile(_currentFile!.path) ? '.mp4' : '.jpg');
+        // String extension = isVideoFile(_currentFile!.path) ? '.mp4' : '.jpg';
 
         outputPath = '${directory.path}/${_filenameController.text}$extension';
 
@@ -373,19 +415,42 @@ class _FileSavePageState extends State<FileSavePage> {
 
       setState(() => _savedPath = outputPath);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('메모리가 저장되었습니다'), backgroundColor: Colors.green),
-      );
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          // 1초 후에 다이얼로그를 자동으로 닫습니다
+          Future.delayed(Duration(seconds: 1), () {
+            if (mounted) Navigator.of(dialogContext).pop();
 
-      Future.delayed(Duration(seconds: 2), () {
-        if (mounted) Navigator.pop(context);
-      });
+            // 저장 성공 후 이전 화면으로 돌아갑니다
+            Future.delayed(Duration(milliseconds: 300), () {
+              if (mounted) Navigator.of(context).pop();
+            });
+          });
+          return _alertDialog(
+            "메모리가 저장되었습니다",
+            Icons.check_circle,
+            Colors.black,
+            Colors.green,
+          );
+        },
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('저장 중 오류가 발생했습니다: $e'),
-          backgroundColor: Colors.red,
-        ),
+      showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          // 1초 후에 다이얼로그를 자동으로 닫습니다
+          Future.delayed(Duration(seconds: 1), () {
+            if (mounted) Navigator.of(dialogContext).pop();
+          });
+          return _alertDialog(
+            "저장 중 오류가 발생했습니다",
+            Icons.warning,
+            Colors.black,
+            Colors.red,
+          );
+        },
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -407,7 +472,7 @@ class _FileSavePageState extends State<FileSavePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('비디오 저장'), backgroundColor: Colors.white),
+      appBar: AppBar(title: Text('새 곳 만들기'), centerTitle: true),
       body: Column(
         children: [
           Expanded(
@@ -456,7 +521,7 @@ class _FileSavePageState extends State<FileSavePage> {
                       decoration: InputDecoration(
                         labelText: '저장할 파일 이름',
                         border: OutlineInputBorder(),
-                        suffixText: '.mp4',
+                        // suffixText: '',
                       ),
                     ),
                     SizedBox(height: 15),

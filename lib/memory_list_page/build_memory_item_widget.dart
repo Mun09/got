@@ -1,5 +1,4 @@
 // 앨범 아이템 위젯 생성
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:got/util/util.dart';
 

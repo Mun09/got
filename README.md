@@ -1,16 +1,47 @@
-# got
+# 🌸 그 순간, 그 장소! 기억이 머무는 곳 ✨ - Got
 
-location based memo
+한 장의 사진, 짧은 영상 속 순간…  
+그때 느꼈던 공기, 햇살, 말 한마디까지 기억나면 좋겠지요? 🍃
 
-## Getting Started
+**Got**은 당신의 소중한 추억을 📸 사진이나 🎥 영상과 함께  
+**그 장소에 콕!📍 저장하는 감성 메모앱**이에요.
 
-This project is a starting point for a Flutter application.
+🗺 지도 위에 핑! 찍어두면  
+어느 날 문득, 그곳을 다시 찾고 싶어질지도 몰라요.
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 📌 주요 기능
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- ✨ 사진/영상과 함께 위치 저장
+- 🗺 지도로 보는 나만의 기억 지도
+- 📝 짧은 메모와 감정 기록 가능
+- 📂 오프라인에서도 안전하게 저장
+
+---
+
+## 💡 이렇게 활용해보세요!
+
+- 여행 중 만난 예쁜 카페, 나중에 또 가고 싶다면? ➜ **Got에 저장!**
+- 친구와의 소중한 한순간, 사진과 함께 ➜ **Got으로 간직!**
+- 지나가다 본 노을이 너무 예뻤다면 ➜ **Got에 남기기!**
+
+---
+
+## 🙏 Credits
+
+이 앱은 혼자의 힘으로 만들어지지 않았어요.  
+고마운 분들 덕분에 **Got**이 세상에 나올 수 있었습니다.
+
+- 👩‍💻 **개발자**: 문재영 (Jaeyoung Moon)
+- 🖋 **폰트 제작**: `도스샘물체` — by leedheo님
+- 🗣 **피드백 제공 및 아이디어 제안**:
+    - 이지원
+    - 임하람
+
+- 🌱 **영감을 주신 모든 사용자님들께 감사드립니다!**
+
+---
+
+> 오늘의 감정, 오늘의 풍경을  
+> **‘곳’에 담아보세요 💕**
