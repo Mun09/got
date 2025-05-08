@@ -10,11 +10,11 @@ class MediaDisplayWidget extends StatefulWidget {
   final bool showControls;
 
   const MediaDisplayWidget({
-    Key? key,
+    super.key,
     required this.memory,
     this.autoPlay = false,
     this.showControls = true,
-  }) : super(key: key);
+  });
 
   @override
   State<MediaDisplayWidget> createState() => _MediaDisplayWidgetState();
@@ -25,36 +25,48 @@ class _MediaDisplayWidgetState extends State<MediaDisplayWidget> {
   bool _isVideoInitialized = false;
   bool _isPlaying = false;
   bool _hasMediaContent = false;
-  bool _isImageMemory = false;
+  int _currentMediaIndex = 0; // 현재 표시 중인 미디어 인덱스
+
+  // 현재 표시 중인 미디어가 이미지인지 여부
+  bool get _isCurrentMediaImage {
+    if (!_hasMediaContent || widget.memory.filePaths.isEmpty) return false;
+    return !isVideoFile(widget.memory.filePaths[_currentMediaIndex]);
+  }
+
+  // 현재 선택된 미디어 경로
+  String? get _currentMediaPath {
+    if (!_hasMediaContent ||
+        _currentMediaIndex >= widget.memory.filePaths.length)
+      return null;
+    return widget.memory.filePaths[_currentMediaIndex];
+  }
 
   @override
   void initState() {
     super.initState();
-    _checkMediaType();
+    _checkMediaContent();
   }
 
-  void _checkMediaType() {
-    if (!isMediaExist(widget.memory)) {
-      setState(() => _hasMediaContent = false);
-      return;
-    }
-
-    final isVideo = isVideoFile(widget.memory.filePath!);
+  void _checkMediaContent() {
+    final hasMedia = widget.memory.hasMedia;
 
     setState(() {
-      _hasMediaContent = true;
-      _isImageMemory = !isVideo;
+      _hasMediaContent = hasMedia;
+      _currentMediaIndex = 0;
     });
 
-    if (isVideo) {
+    if (hasMedia && !_isCurrentMediaImage) {
       _initializeVideo();
     }
   }
 
   void _initializeVideo() {
-    if (widget.memory.filePath == null) return;
+    if (_currentMediaPath == null) return;
 
-    _controller = VideoPlayerController.file(File(widget.memory.filePath!))
+    _controller?.dispose();
+    _isVideoInitialized = false;
+
+    _controller = VideoPlayerController.file(File(_currentMediaPath!))
       ..initialize().then((_) {
         if (mounted) {
           setState(() {
@@ -79,6 +91,41 @@ class _MediaDisplayWidgetState extends State<MediaDisplayWidget> {
     });
   }
 
+  void _showNextMedia() {
+    if (!_hasMediaContent || widget.memory.filePaths.length <= 1) return;
+
+    final nextIndex = (_currentMediaIndex + 1) % widget.memory.filePaths.length;
+    _showMediaAtIndex(nextIndex);
+  }
+
+  void _showPreviousMedia() {
+    if (!_hasMediaContent || widget.memory.filePaths.length <= 1) return;
+
+    final prevIndex =
+        _currentMediaIndex == 0
+            ? widget.memory.filePaths.length - 1
+            : _currentMediaIndex - 1;
+    _showMediaAtIndex(prevIndex);
+  }
+
+  void _showMediaAtIndex(int index) {
+    if (index < 0 || index >= widget.memory.filePaths.length) return;
+
+    // 비디오 재생 중이면 중지
+    if (_controller != null) {
+      _controller!.pause();
+      _isPlaying = false;
+    }
+
+    setState(() {
+      _currentMediaIndex = index;
+    });
+
+    if (!_isCurrentMediaImage) {
+      _initializeVideo();
+    }
+  }
+
   @override
   void dispose() {
     _controller?.dispose();
@@ -87,32 +134,44 @@ class _MediaDisplayWidgetState extends State<MediaDisplayWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_hasMediaContent) {
-      // 미디어 파일이 없는 경우
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          color: Colors.grey[900],
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.image_not_supported, size: 48, color: Colors.white54),
-              SizedBox(height: 8),
-              Text('미디어 파일 없음', style: TextStyle(color: Colors.white54)),
-            ],
-          ),
-        ),
-      );
-    } else if (_isImageMemory) {
-      // 이미지인 경우
+    if (!_hasMediaContent || widget.memory.filePaths.isEmpty) {
+      return _buildNoMediaUI();
+    }
+
+    return Column(
+      children: [
+        _buildMediaContent(),
+        if (widget.showControls && widget.memory.filePaths.length > 1)
+          _buildMediaSwitcher(),
+        if (widget.showControls && !_isCurrentMediaImage) buildVideoControls(),
+      ],
+    );
+  }
+
+  Widget _buildMediaContent() {
+    if (_isCurrentMediaImage) {
+      // 이미지 표시
       return Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.6,
         ),
-        child: Image.file(File(widget.memory.filePath!), fit: BoxFit.contain),
+        child: Image.file(
+          File(_currentMediaPath!),
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: Colors.grey[300],
+              child: Icon(
+                Icons.broken_image,
+                size: 50,
+                color: Colors.grey[600],
+              ),
+            );
+          },
+        ),
       );
     } else {
-      // 비디오인 경우
+      // 비디오 표시
       if (_isVideoInitialized && _controller != null) {
         return GestureDetector(
           onTap: _togglePlayPause,
@@ -148,9 +207,46 @@ class _MediaDisplayWidgetState extends State<MediaDisplayWidget> {
     }
   }
 
+  Widget _buildMediaSwitcher() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.chevron_left),
+            onPressed: _showPreviousMedia,
+          ),
+          Text('${_currentMediaIndex + 1}/${widget.memory.filePaths.length}'),
+          IconButton(
+            icon: Icon(Icons.chevron_right),
+            onPressed: _showNextMedia,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoMediaUI() {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Container(
+        color: Colors.grey[900],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.image_not_supported, size: 48, color: Colors.white54),
+            SizedBox(height: 8),
+            Text('미디어 파일 없음', style: TextStyle(color: Colors.white54)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildVideoControls() {
     if (!_hasMediaContent ||
-        _isImageMemory ||
+        _isCurrentMediaImage ||
         _controller == null ||
         !_isVideoInitialized) {
       return SizedBox();

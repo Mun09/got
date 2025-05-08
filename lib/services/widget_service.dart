@@ -96,7 +96,7 @@ class WidgetService {
 
       // 메모리 저장
       await memoryService.saveMemory(
-        savedImage.path,
+        [savedImage.path],
         '위젯에서 자동 촬영',
         '위젯에서 자동 촬영',
         latitude,

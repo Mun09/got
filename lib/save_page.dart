@@ -15,7 +15,7 @@ import 'camera_screen.dart';
 import 'util/util.dart';
 import 'widget/location_info_widget.dart';
 import 'widget/map_preview_widget.dart';
-import 'widget/media_widget.dart';
+import 'widget/media_preview_widget.dart';
 import 'package:path/path.dart' as path;
 
 class FileSavePage extends StatefulWidget {
@@ -32,7 +32,7 @@ class _FileSavePageState extends State<FileSavePage> {
 
   // 저장 관련 상태
   bool _isSaving = false;
-  String? _savedPath;
+  List<String> _savedPaths = [];
 
   // 위치 정보
   late LocationService _locationService;
@@ -47,8 +47,9 @@ class _FileSavePageState extends State<FileSavePage> {
   Set<Marker> _markers = {};
 
   // 미디어 관련
-  XFile? _currentFile;
-  late VideoPlayerController _videoPlayerController;
+  List<XFile> _selectedFiles = [];
+  int _currentPreviewIndex = 0;
+  VideoPlayerController? _videoPlayerController;
   bool _isVideoInitialized = false;
   bool _isMuted = true;
 
@@ -56,7 +57,7 @@ class _FileSavePageState extends State<FileSavePage> {
   void initState() {
     super.initState();
     _filenameController.text =
-        'Video_${DateTime.now().toString().replaceAll(' ', '_').replaceAll(':', '-').split('.')[0]}';
+        'Memory_${DateTime.now().toString().replaceAll(' ', '_').replaceAll(':', '-').split('.')[0]}';
     _locationService = Provider.of<LocationService>(context, listen: false);
     _locationService.addListener(_updateLocationInfo);
     _updateLocationInfo();
@@ -83,22 +84,18 @@ class _FileSavePageState extends State<FileSavePage> {
     });
   }
 
-  Future<void> _initializeVideoPlayer() async {
-    if (_currentFile == null) return;
-
-    if (_isVideoInitialized) {
-      await _videoPlayerController.dispose();
+  Future<void> _initializeVideoPlayer(String videoPath) async {
+    if (_isVideoInitialized && _videoPlayerController != null) {
+      await _videoPlayerController!.dispose();
     }
 
-    _videoPlayerController = VideoPlayerController.file(
-      File(_currentFile!.path),
-    );
+    _videoPlayerController = VideoPlayerController.file(File(videoPath));
 
     try {
-      await _videoPlayerController.initialize();
-      _videoPlayerController.setLooping(true);
-      _videoPlayerController.setVolume(0.0);
-      _videoPlayerController.play();
+      await _videoPlayerController!.initialize();
+      _videoPlayerController!.setLooping(true);
+      _videoPlayerController!.setVolume(0.0);
+      _videoPlayerController!.play();
 
       if (mounted) {
         setState(() {
@@ -113,6 +110,27 @@ class _FileSavePageState extends State<FileSavePage> {
         });
       }
     }
+  }
+
+  void _previewFile(int index) {
+    setState(() {
+      _currentPreviewIndex = index;
+      _isVideoInitialized = false;
+    });
+
+    final currentFile = _selectedFiles[index];
+    if (isVideoFile(currentFile.path)) {
+      _initializeVideoPlayer(currentFile.path);
+    }
+  }
+
+  // 현재 선택된 파일 가져오기
+  XFile? get _currentFile {
+    if (_selectedFiles.isEmpty) return null;
+    if (_currentPreviewIndex >= _selectedFiles.length) {
+      _currentPreviewIndex = 0;
+    }
+    return _selectedFiles[_currentPreviewIndex];
   }
 
   void _showMediaOptions() {
@@ -132,19 +150,11 @@ class _FileSavePageState extends State<FileSavePage> {
                   },
                 ),
                 ListTile(
-                  leading: Icon(Icons.photo_library),
-                  title: Text('갤러리에서 이미지 선택'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImageFromGallery();
-                  },
-                ),
-                ListTile(
                   leading: Icon(Icons.video_library),
-                  title: Text('갤러리에서 동영상 선택'),
+                  title: Text('갤러리에서 미디어 선택'),
                   onTap: () {
                     Navigator.pop(context);
-                    _pickVideoFromGallery();
+                    _pickMultipleFilesFromGallery();
                   },
                 ),
               ],
@@ -153,32 +163,30 @@ class _FileSavePageState extends State<FileSavePage> {
     );
   }
 
-  Future<void> _pickImageFromGallery() async {
+  Future<void> _pickMultipleFilesFromGallery() async {
     final picker = ImagePicker();
-    final XFile? pickedImage = await picker.pickImage(
-      source: ImageSource.gallery,
-    );
+    final List<XFile> pickedFiles = await picker.pickMultipleMedia();
 
-    if (pickedImage != null) {
+    if (pickedFiles.isNotEmpty) {
+      // 중복된 파일 경로 제거
+      Set<String> existingPaths =
+          _selectedFiles.map((file) => file.path).toSet();
+      List<XFile> newFiles =
+          pickedFiles
+              .where((file) => !existingPaths.contains(file.path))
+              .toList();
+
+      List<XFile> allFiles = _selectedFiles + newFiles;
+
       setState(() {
-        _currentFile = pickedImage;
+        _selectedFiles = allFiles;
+        _currentPreviewIndex = 0;
         _isVideoInitialized = false;
       });
-    }
-  }
 
-  Future<void> _pickVideoFromGallery() async {
-    final picker = ImagePicker();
-    final XFile? pickedVideo = await picker.pickVideo(
-      source: ImageSource.gallery,
-    );
-
-    if (pickedVideo != null) {
-      setState(() {
-        _currentFile = pickedVideo;
-        _isVideoInitialized = false;
-      });
-      _initializeVideoPlayer();
+      if (allFiles.isNotEmpty && isVideoFile(allFiles[0].path)) {
+        _initializeVideoPlayer(allFiles[0].path);
+      }
     }
   }
 
@@ -188,16 +196,57 @@ class _FileSavePageState extends State<FileSavePage> {
       MaterialPageRoute(builder: (context) => CameraScreen()),
     );
 
+    Set<String> existingPaths = _selectedFiles.map((file) => file.path).toSet();
+    List<XFile> newFiles =
+        existingPaths.contains(result.path)
+            ? _selectedFiles
+            : _selectedFiles + [result];
+
     if (result != null && result is XFile) {
       setState(() {
-        _currentFile = result;
+        _selectedFiles = newFiles;
+        _currentPreviewIndex = 0;
         _isVideoInitialized = false;
       });
 
-      if (isVideoFile(result.path)) {
-        _initializeVideoPlayer();
+      if (isVideoFile(_selectedFiles[0].path)) {
+        _initializeVideoPlayer(_selectedFiles[0].path);
       }
     }
+  }
+
+  void _removeFile(int index) {
+    setState(() {
+      if (_selectedFiles.isNotEmpty) {
+        // 현재 보고 있는 미디어를 삭제하는 경우
+        bool wasCurrentFile = index == _currentPreviewIndex;
+
+        _selectedFiles.removeAt(index);
+
+        // 현재 인덱스 조정
+        if (_selectedFiles.isEmpty) {
+          _currentPreviewIndex = 0;
+          _isVideoInitialized = false;
+          if (_videoPlayerController != null) {
+            _videoPlayerController!.dispose();
+            _videoPlayerController = null;
+          }
+        } else if (wasCurrentFile ||
+            _currentPreviewIndex >= _selectedFiles.length) {
+          _currentPreviewIndex = 0;
+          _isVideoInitialized = false;
+
+          // 삭제 후 첫 번째 파일이 비디오인 경우 초기화
+          if (_selectedFiles.isNotEmpty &&
+              isVideoFile(_selectedFiles[0].path)) {
+            _initializeVideoPlayer(_selectedFiles[0].path);
+          } else if (_videoPlayerController != null) {
+            _videoPlayerController!.dispose();
+            _videoPlayerController = null;
+          }
+        }
+      }
+    });
   }
 
   void _addMarker(Position position, {bool isUserSelection = false}) {
@@ -294,9 +343,11 @@ class _FileSavePageState extends State<FileSavePage> {
   }
 
   void _toggleMute() {
+    if (_videoPlayerController == null) return;
+
     setState(() {
       _isMuted = !_isMuted;
-      _videoPlayerController.setVolume(_isMuted ? 0.0 : 1.0);
+      _videoPlayerController!.setVolume(_isMuted ? 0.0 : 1.0);
     });
   }
 
@@ -368,7 +419,7 @@ class _FileSavePageState extends State<FileSavePage> {
             if (mounted) Navigator.of(dialogContext).pop();
           });
           return _alertDialog(
-            "파일 이름을 입력해주세요",
+            "이름을 입력해주세요",
             Icons.warning,
             Colors.black,
             Colors.red,
@@ -382,20 +433,20 @@ class _FileSavePageState extends State<FileSavePage> {
 
     try {
       final memoryService = MemoryService();
-      String? outputPath;
+      List<String> filePaths = [];
 
-      if (_currentFile != null) {
-        final directory = await getApplicationDocumentsDirectory();
-        String extension =
-            path.extension(_currentFile!.path).toLowerCase().isNotEmpty
-                ? path.extension(_currentFile!.path).toLowerCase()
-                : (isVideoFile(_currentFile!.path) ? '.mp4' : '.jpg');
-        // String extension = isVideoFile(_currentFile!.path) ? '.mp4' : '.jpg';
+      // 각 선택된 파일을 앱 디렉토리에 복사
+      if (_selectedFiles.isNotEmpty) {
+        for (int i = 0; i < _selectedFiles.length; i++) {
+          XFile file = _selectedFiles[i];
+          String fileExt = path.extension(file.path).toLowerCase();
+          if (fileExt.isEmpty) {
+            fileExt = isVideoFile(file.path) ? '.mp4' : '.jpg';
+          }
 
-        outputPath = '${directory.path}/${_filenameController.text}$extension';
-
-        final File sourceFile = File(_currentFile!.path);
-        await sourceFile.copy(outputPath);
+          // final File sourceFile = File(file.path);
+          filePaths.add(file.path);
+        }
       }
 
       final latitude =
@@ -405,15 +456,16 @@ class _FileSavePageState extends State<FileSavePage> {
           _selectedPosition?.longitude ??
           _locationService.currentPosition?.longitude;
 
+      // 여러 파일 저장
       await memoryService.saveMemory(
-        _currentFile?.path,
+        filePaths,
         _filenameController.text,
         _memoController.text,
         latitude,
         longitude,
       );
 
-      setState(() => _savedPath = outputPath);
+      setState(() => _savedPaths = filePaths);
 
       showDialog(
         context: context,
@@ -437,6 +489,7 @@ class _FileSavePageState extends State<FileSavePage> {
         },
       );
     } catch (e) {
+      print("저장 중 오류 발생: $e");
       showDialog(
         context: context,
         builder: (BuildContext dialogContext) {
@@ -462,8 +515,8 @@ class _FileSavePageState extends State<FileSavePage> {
     _filenameController.dispose();
     _memoController.dispose();
     _mapController?.dispose();
-    if (_isVideoInitialized) {
-      _videoPlayerController.dispose();
+    if (_videoPlayerController != null) {
+      _videoPlayerController!.dispose();
     }
     _locationService.removeListener(_updateLocationInfo);
     super.dispose();
@@ -495,6 +548,102 @@ class _FileSavePageState extends State<FileSavePage> {
                     ),
                     SizedBox(height: 10),
 
+                    // 선택된 미디어 파일 목록
+                    if (_selectedFiles.isNotEmpty)
+                      Container(
+                        height: 80,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _selectedFiles.length,
+                          itemBuilder: (context, index) {
+                            final file = _selectedFiles[index];
+                            final isSelected = index == _currentPreviewIndex;
+
+                            return GestureDetector(
+                              onTap: () => _previewFile(index),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 80,
+                                    height: 80,
+                                    margin: EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color:
+                                            isSelected
+                                                ? Colors.blue
+                                                : Colors.grey,
+                                        width: isSelected ? 3 : 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(6),
+                                      child:
+                                          isVideoFile(file.path)
+                                              ? Stack(
+                                                fit: StackFit.expand,
+                                                children: [
+                                                  Image.file(
+                                                    File(file.path),
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) => Container(
+                                                          color:
+                                                              Colors.grey[900],
+                                                          child: Icon(
+                                                            Icons.video_file,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                  ),
+                                                  Center(
+                                                    child: Icon(
+                                                      Icons.play_circle_fill,
+                                                      color: Colors.white
+                                                          .withOpacity(0.7),
+                                                      size: 30,
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
+                                              : Image.file(
+                                                File(file.path),
+                                                fit: BoxFit.cover,
+                                              ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 2,
+                                    right: 10,
+                                    child: GestureDetector(
+                                      onTap: () => _removeFile(index),
+                                      child: Container(
+                                        padding: EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    SizedBox(height: 10),
+
                     // 지도 프리뷰
                     MapPreviewWidget(
                       currentPosition: _currentPosition,
@@ -519,9 +668,8 @@ class _FileSavePageState extends State<FileSavePage> {
                     TextField(
                       controller: _filenameController,
                       decoration: InputDecoration(
-                        labelText: '저장할 파일 이름',
+                        labelText: '이 곳은 이름이 뭔가요?',
                         border: OutlineInputBorder(),
-                        // suffixText: '',
                       ),
                     ),
                     SizedBox(height: 15),
@@ -530,7 +678,7 @@ class _FileSavePageState extends State<FileSavePage> {
                     TextField(
                       controller: _memoController,
                       decoration: InputDecoration(
-                        labelText: '메모',
+                        labelText: '기억에 남기고 싶은 내용을 작성해보세요.',
                         border: OutlineInputBorder(),
                         hintText: '기억에 남기고 싶은 내용을 작성해보세요.',
                       ),
@@ -563,7 +711,7 @@ class _FileSavePageState extends State<FileSavePage> {
               children: [
                 ElevatedButton(
                   onPressed:
-                      _savedPath != null
+                      _savedPaths.isNotEmpty
                           ? null
                           : (_isSaving ? null : _saveFile),
                   style: ElevatedButton.styleFrom(
@@ -574,7 +722,7 @@ class _FileSavePageState extends State<FileSavePage> {
                       _isSaving
                           ? CircularProgressIndicator(color: Colors.white)
                           : Text(
-                            _savedPath != null ? '저장됨' : '저장하기',
+                            _savedPaths.isNotEmpty ? '저장됨' : '저장하기',
                             style: TextStyle(fontSize: 16),
                           ),
                 ),

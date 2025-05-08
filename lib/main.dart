@@ -28,6 +28,8 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -52,7 +54,7 @@ class MyApp extends StatelessWidget {
           titleTextStyle: TextStyle(
             color: Colors.grey[800],
             fontFamily: 'dosSamemul',
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w500,
             fontSize: 18,
           ),
         ),

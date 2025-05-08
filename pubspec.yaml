@@ -16,6 +16,7 @@ dependencies:
   permission_handler: ^11.0.0
   video_player: ^2.8.1
   path_provider: ^2.1.1
+  path: ^1.8.0
   uuid: ^4.0.0
   geolocator: ^10.0.1
   geocoding: ^2.1.1
@@ -26,6 +27,7 @@ dependencies:
   intl: ^0.18.0
   shared_preferences: ^2.1.1
   device_info_plus: ^9.0.0
+  video_compress: ^3.1.2
 
 dev_dependencies:
   flutter_test:

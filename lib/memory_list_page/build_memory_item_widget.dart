@@ -75,7 +75,7 @@ Widget buildMemoryItem(
           fit: StackFit.expand,
           children: [
             // 배경 이미지/비디오
-            buildThumbnail(memory),
+            ThumbnailWidget(memory: memory),
 
             // 그라데이션 오버레이
             Positioned.fill(
@@ -181,7 +181,7 @@ Widget buildMemoryItem(
             ),
 
             // 비디오 표시기
-            if (memory.filePath != null && isVideoFile(memory.filePath!))
+            if (memory.filePaths.any((path) => isVideoFile(path)))
               Positioned(
                 top: 8,
                 right: 8,

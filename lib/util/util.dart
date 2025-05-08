@@ -24,11 +24,10 @@ bool isVideoFile(String path) {
       lowerPath.endsWith('.webm');
 }
 
-bool isMediaExist(Memory memory) {
-  final bool hasFilePath =
-      memory.filePath != null && memory.filePath!.isNotEmpty;
-  return hasFilePath && File(memory.filePath!).existsSync();
-}
+// bool isMediaExist(Memory memory) {
+//   final bool hasFilePath = memory.hasMedia;
+//   return hasFilePath && File(memory.filePaths).existsSync();
+// }
 
 String formatDate(DateTime dateTime) {
   return DateFormat('yyyy년 MM월 dd일 HH:mm').format(dateTime);
