@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/memory.dart';
@@ -106,6 +107,7 @@ class MemoryService extends ChangeNotifier {
 
   // 메모리 저장
   Future<Memory> saveMemory(
+    int imageQuality,
     List<String> filePaths,
     String memoryName,
     String memo,
@@ -131,15 +133,37 @@ class MemoryService extends ChangeNotifier {
           final File sourceFile = File(filePath);
           String outputPath =
               '${directory.path}/${memoryName}-${id}-${i}$extension';
-          await sourceFile.copy(outputPath);
-          outputPaths.add(outputPath);
-        }
+          // await sourceFile.copy(outputPath);
 
-        // final directory = await getApplicationDocumentsDirectory();
-        // String extension = isVideoFile(filePath) ? '.mp4' : '.jpg';
-        // final File sourceFile = File(filePath);
-        // outputPath = '${directory.path}/${fileName}-${id}$extension';
-        // await sourceFile.copy(outputPath);
+          if (isImageFile(filePath)) {
+            // 이미지 파일인 경우 압축 적용
+            final result = await FlutterImageCompress.compressAndGetFile(
+              filePath,
+              outputPath,
+              quality: imageQuality,
+              // 해상도 조정도 가능
+              minWidth: 1024,
+              minHeight: 1024,
+              // 포맷 유지
+              format:
+                  extension.toLowerCase() == '.png'
+                      ? CompressFormat.png
+                      : CompressFormat.jpeg,
+            );
+
+            if (result != null) {
+              outputPaths.add(result.path);
+            } else {
+              // 압축 실패 시 원본 복사
+              await sourceFile.copy(outputPath);
+              outputPaths.add(outputPath);
+            }
+          } else {
+            // 이미지가 아닌 파일은 그대로 복사
+            await sourceFile.copy(outputPath);
+            outputPaths.add(outputPath);
+          }
+        }
       }
 
       // 새로운 메모리 객체 생성

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/memory.dart';
@@ -31,4 +32,30 @@ bool isVideoFile(String path) {
 
 String formatDate(DateTime dateTime) {
   return DateFormat('yyyy년 MM월 dd일 HH:mm').format(dateTime);
+}
+
+AlertDialog alertDialog(
+  String text,
+  IconData showIcon,
+  Color? textColor,
+  Color? iconColor,
+) {
+  return AlertDialog(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(showIcon, color: iconColor ?? Colors.green, size: 60),
+        SizedBox(height: 16),
+        Text(
+          text,
+          style: TextStyle(
+            fontFamily: 'dosSamemul',
+            fontWeight: FontWeight.w800,
+            color: textColor ?? Colors.black,
+          ),
+        ),
+      ],
+    ),
+  );
 }

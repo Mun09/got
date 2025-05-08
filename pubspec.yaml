@@ -28,6 +28,7 @@ dependencies:
   shared_preferences: ^2.1.1
   device_info_plus: ^9.0.0
   video_compress: ^3.1.2
+  flutter_image_compress: ^2.4.0
 
 dev_dependencies:
   flutter_test:

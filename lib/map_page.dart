@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:got/services/location_service.dart';
 import 'package:got/services/memory_service.dart';
+import 'package:got/services/settings_service.dart';
 
 import 'package:got/util/util.dart';
 import 'package:provider/provider.dart';
@@ -147,6 +148,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         // 비동기로 마커 생성
         _buildMarkers(memoryService.memories);
 
+        // SettingsService에서 설정값 가져오기
+        final settingsService = Provider.of<SettingsService>(context);
+
         return Scaffold(
           appBar: AppBar(
             title: Text('나의 곳 지도'),
@@ -169,7 +173,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                                     position.longitude,
                                   )
                                   : LatLng(37.5665, 126.9780), // 기본값: 서울
-                          zoom: 15,
+                          zoom: settingsService.defaultMapZoom,
                         ),
                         markers: _markers,
                         myLocationEnabled: true,

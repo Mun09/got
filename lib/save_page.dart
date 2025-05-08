@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:got/services/location_service.dart';
 import 'package:got/services/memory_service.dart';
+import 'package:got/services/settings_service.dart';
 import 'package:got/widget/location_picker_dialog_widget.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -36,6 +36,8 @@ class _FileSavePageState extends State<FileSavePage> {
 
   // 위치 정보
   late LocationService _locationService;
+  late SettingsService _settingsService;
+  late bool _useCurrentLocation;
   bool _isLoadingLocation = true;
   String? _currentLocation;
   Position? _selectedPosition;
@@ -59,14 +61,36 @@ class _FileSavePageState extends State<FileSavePage> {
     _filenameController.text =
         'Memory_${DateTime.now().toString().replaceAll(' ', '_').replaceAll(':', '-').split('.')[0]}';
     _locationService = Provider.of<LocationService>(context, listen: false);
-    _locationService.addListener(_updateLocationInfo);
+    _settingsService = Provider.of<SettingsService>(context, listen: false);
+    // _locationService.addListener(_updateLocationInfo);
     _updateLocationInfo();
   }
 
   void _updateLocationInfo() {
     if (!mounted) return;
-    final position = _locationService.currentPosition;
-    final address = _locationService.currentAddress;
+
+    Position? position;
+    String? address;
+    if (_settingsService.useCurrentLocationByDefault) {
+      position = _locationService.currentPosition;
+      address = _locationService.currentAddress;
+    } else {
+      position = Position(
+        latitude: 37.5665,
+        // 서울 중심부(시청) 위도
+        longitude: 126.9780,
+        // 서울 중심부(시청) 경도
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        heading: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        altitudeAccuracy: 0,
+        // 추가된 필수 매개변수
+        headingAccuracy: 0, // 추가된 필수 매개변수
+      );
+    }
 
     setState(() {
       _currentPosition = position;
@@ -383,32 +407,6 @@ class _FileSavePageState extends State<FileSavePage> {
     );
   }
 
-  AlertDialog _alertDialog(
-    String text,
-    IconData showIcon,
-    Color? textColor,
-    Color? iconColor,
-  ) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(showIcon, color: iconColor ?? Colors.green, size: 60),
-          SizedBox(height: 16),
-          Text(
-            text,
-            style: TextStyle(
-              fontFamily: 'dosSamemul',
-              fontWeight: FontWeight.w800,
-              color: textColor ?? Colors.black,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _saveFile() async {
     if (_filenameController.text.isEmpty) {
       showDialog(
@@ -418,7 +416,7 @@ class _FileSavePageState extends State<FileSavePage> {
           Future.delayed(Duration(seconds: 1), () {
             if (mounted) Navigator.of(dialogContext).pop();
           });
-          return _alertDialog(
+          return alertDialog(
             "이름을 입력해주세요",
             Icons.warning,
             Colors.black,
@@ -456,8 +454,14 @@ class _FileSavePageState extends State<FileSavePage> {
           _selectedPosition?.longitude ??
           _locationService.currentPosition?.longitude;
 
+      final settingsService = Provider.of<SettingsService>(
+        context,
+        listen: false,
+      );
+
       // 여러 파일 저장
       await memoryService.saveMemory(
+        settingsService.imageQuality,
         filePaths,
         _filenameController.text,
         _memoController.text,
@@ -480,7 +484,7 @@ class _FileSavePageState extends State<FileSavePage> {
               if (mounted) Navigator.of(context).pop();
             });
           });
-          return _alertDialog(
+          return alertDialog(
             "메모리가 저장되었습니다",
             Icons.check_circle,
             Colors.black,
@@ -497,7 +501,7 @@ class _FileSavePageState extends State<FileSavePage> {
           Future.delayed(Duration(seconds: 1), () {
             if (mounted) Navigator.of(dialogContext).pop();
           });
-          return _alertDialog(
+          return alertDialog(
             "저장 중 오류가 발생했습니다",
             Icons.warning,
             Colors.black,
@@ -518,7 +522,7 @@ class _FileSavePageState extends State<FileSavePage> {
     if (_videoPlayerController != null) {
       _videoPlayerController!.dispose();
     }
-    _locationService.removeListener(_updateLocationInfo);
+    // _locationService.removeListener(_updateLocationInfo);
     super.dispose();
   }
 

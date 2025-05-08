@@ -2,6 +2,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:got/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
@@ -93,9 +94,11 @@ class WidgetService {
 
       // MemoryService 초기화 및 데이터베이스 연결
       final memoryService = MemoryService();
+      final settingsService = SettingsService();
 
       // 메모리 저장
       await memoryService.saveMemory(
+        settingsService.imageQuality,
         [savedImage.path],
         '위젯에서 자동 촬영',
         '위젯에서 자동 촬영',

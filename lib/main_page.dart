@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:got/map_page.dart';
 import 'package:got/memory_list_page.dart';
 import 'package:got/services/permission_service.dart';
+import 'package:got/settings_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class MainPage extends StatefulWidget {
@@ -25,7 +26,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
     // 각 네비게이션 아이템별 애니메이션 컨트롤러 초기화
     _animationControllers = List.generate(
-      2,
+      3,
       (index) => AnimationController(
         vsync: this,
         duration: Duration(milliseconds: 300),
@@ -57,7 +58,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   int _currentIndex = 0; // 현재 선택된 탭 인덱스 (0: 지도, 1: 카메라)
 
   // 화면 목록
-  final List<Widget> _screens = [MapScreen(), MemoryListPage()];
+  final List<Widget> _screens = [MapScreen(), MemoryListPage(), SettingsPage()];
 
   @override
   @override
@@ -83,7 +84,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               _currentIndex = index;
             });
           },
-          items: List.generate(2, (index) {
+          items: List.generate(3, (index) {
             return BottomNavigationBarItem(
               icon: AnimatedBuilder(
                 animation: _animationControllers[index],
@@ -92,12 +93,22 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                     scale: 1.0 + (_animationControllers[index].value * 0.2),
                     child: Opacity(
                       opacity: 0.5 + (_animationControllers[index].value * 0.5),
-                      child: index == 0 ? Icon(Icons.map) : Icon(Icons.add),
+                      child:
+                          index == 0
+                              ? Icon(Icons.map)
+                              : index == 1
+                              ? Icon(Icons.add)
+                              : Icon(Icons.settings),
                     ),
                   );
                 },
               ),
-              label: index == 0 ? '곳 지도' : '새 곳',
+              label:
+                  index == 0
+                      ? '곳 지도'
+                      : index == 1
+                      ? '새 곳'
+                      : '설정',
             );
           }),
           selectedItemColor: Colors.blue,
