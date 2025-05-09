@@ -47,9 +47,6 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: EdgeInsets.all(16.0),
             children: [
               // 앱 정보 섹션
-              _buildSectionTitle('앱 정보'),
-              ListTile(title: Text('버전'), trailing: Text(settings.appVersion)),
-              Divider(),
 
               // 앱 테마 설정
               _buildSectionTitle('앱 테마'),
@@ -148,78 +145,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               Divider(),
 
-              // 사용자 정보 설정
-              _buildSectionTitle('사용자 정보'),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: '이름',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      SizedBox(height: 16.0),
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: '이메일',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            // 간단한 이메일 유효성 검사
-                            bool validEmail = RegExp(
-                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                            ).hasMatch(value);
-                            if (!validEmail) return '유효한 이메일 주소를 입력해주세요';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16.0),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState?.validate() ?? false) {
-                            settings.setUserInfo(
-                              _nameController.text.trim(),
-                              _emailController.text.trim(),
-                            );
-
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext dialogContext) {
-                                // 1초 후에 다이얼로그를 자동으로 닫습니다
-                                Future.delayed(Duration(seconds: 1), () {
-                                  if (mounted) {
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                });
-                                return alertDialog(
-                                  "이름과 이메일 저장되었습니다!",
-                                  Icons.check_circle,
-                                  Colors.black,
-                                  Colors.green,
-                                );
-                              },
-                            );
-                          }
-                        },
-                        child: Text('저장'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size(double.infinity, 48),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 40),
+              _buildSectionTitle('앱 정보'),
+              ListTile(title: Text('버전'), trailing: Text(settings.appVersion)),
+              Divider(),
             ],
           );
         },

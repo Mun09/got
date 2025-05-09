@@ -227,8 +227,6 @@ class _MemoryListPageState extends State<MemoryListPage> {
 
   // 선택 모드 앱바
   AppBar _buildSelectionModeAppBar() {
-    print(_selectedGOTs.length);
-
     return AppBar(
       elevation: 0.5,
       backgroundColor: Colors.white,
@@ -280,9 +278,9 @@ class _MemoryListPageState extends State<MemoryListPage> {
   }
 
   // GOT 아이템 위젯
-  Widget _buildGOTItem(GOT got) {
-    final representativeMemory = got.getRepresentativeMemory();
-    final isSelected = _selectedGOTs.contains(got);
+  Future<Widget> _buildGOTItem(GOT got) async {
+    final representativeMemory = await got.getRepresentativeMemory();
+    // final isSelected = _selectedGOTs.contains(got);
 
     // 성능 개선을 위한 별도의 위젯으로 분리
     return _GOTItemWidget(
@@ -339,7 +337,21 @@ class _MemoryListPageState extends State<MemoryListPage> {
                         itemCount: _gotList.length,
                         itemBuilder: (context, index) {
                           final got = _gotList[index];
-                          return _buildGOTItem(got);
+                          return FutureBuilder<Widget>(
+                            future: _buildGOTItem(got),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return Center(child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+                                  strokeWidth: 2,
+                                ));
+                              } else if (snapshot.hasError) {
+                                return Center(child: Icon(Icons.error, color: Colors.grey));
+                              } else {
+                                return snapshot.data ?? Container();
+                              }
+                            },
+                          );
                         },
                       ),
                     ),
@@ -373,14 +385,14 @@ class _GOTItemWidget extends StatelessWidget {
   final VoidCallback onLongPress;
 
   const _GOTItemWidget({
-    Key? key,
+    super.key,
     required this.got,
     required this.memory,
     required this.isSelected,
     required this.isSelectionMode,
     required this.onTap,
     required this.onLongPress,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +453,7 @@ class _GOTItemWidget extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      got.name,
+                      got.getSimpleLocationString(),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

@@ -75,8 +75,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         );
       }
 
-      // 잠시 대기 후 광고 표시 (사용자 경험 향상)
-      await Future.delayed(const Duration(milliseconds: 500));
+      // // 잠시 대기 후 광고 표시 (사용자 경험 향상)
+      // await Future.delayed(const Duration(milliseconds: 500));
 
       // 광고가 로드되지 않았다면 로드 후 표시
       if (!adService.isAdLoaded) {

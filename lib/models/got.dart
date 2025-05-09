@@ -1,3 +1,4 @@
+import '../services/memory_service.dart';
 import 'memory.dart';
 
 class GOT {
@@ -18,8 +19,8 @@ class GOT {
   });
 
   // 시간순으로 정렬된 메모리 리스트 반환 (최신순)
-  List<Memory> getSortedMemoriesByTime({bool descending = true}) {
-    final sortedList = List<Memory>.from(memories);
+  Future<List<Memory>> getSortedMemoriesByTime({bool descending = true}) async {
+    final sortedList = await getValidMemories();
     sortedList.sort(
       (a, b) =>
           descending
@@ -34,6 +35,25 @@ class GOT {
     return memories.where((memory) {
       return memory.createdAt.isAfter(start) && memory.createdAt.isBefore(end);
     }).toList();
+  }
+
+  // 위치 문자열을 행정구역과 동네 이름까지만 간결하게 처리
+  String getSimpleLocationString() {
+    if (locationString == null) return "알 수 없는 위치";
+
+    // 주소 문자열 파싱 (예: "대한민국 서울특별시 강남구 삼성동 123-45" -> "강남구 삼성동")
+    List<String> parts = locationString!.split(', ');
+
+    // 최소 3개 이상의 부분이 있는 경우 (국가, 시/도, 구/군 등)
+    if (parts.length >= 3) {
+      // 구/군과 동/읍/면 부분만 가져오기 (일반적으로 2-3번째 요소)
+      return "${parts[parts.length > 3 ? 2 : 1]}, ${parts[parts.length > 3 ? 3 : 2]}";
+    }
+
+    // 파싱할 수 없는 경우 원본 반환 (단, 너무 길면 자르기)
+    return locationString!.length > 20
+        ? "${locationString!.substring(0, 20)}..."
+        : locationString!;
   }
 
   // JSON 변환
@@ -79,8 +99,8 @@ class GOT {
   }
 
   // models/got.dart 파일에 다음 메서드 추가
-  Memory getRepresentativeMemory() {
-    List<Memory> sortedMemories = getSortedMemoriesByTime();
+  Future<Memory> getRepresentativeMemory() async {
+    List<Memory> sortedMemories = await getSortedMemoriesByTime();
 
     // 미디어가 있는 메모리 먼저 찾기
     for (Memory memory in sortedMemories) {
@@ -91,6 +111,29 @@ class GOT {
 
     // 미디어가 없으면 가장 최근 메모리 반환
     return sortedMemories.first;
+  }
+
+  // 유효한 메모리만 필터링하여 반환하는 비동기 메서드
+  Future<List<Memory>> getValidMemories() async {
+    final memoryService = MemoryService();
+    List<Memory> validMemories = [];
+
+    for (Memory memory in memories) {
+      // 메모리가 실제로 데이터베이스에 존재하는지 확인
+      Memory? validMemory = await memoryService.getMemoryById(memory.id);
+      if (validMemory != null) {
+        validMemories.add(validMemory);
+      }
+    }
+
+    return validMemories;
+  }
+
+// 현재 memories 리스트를 유효한 메모리로 업데이트
+  Future<void> refreshMemories() async {
+    final validMemories = await getValidMemories();
+    memories.clear();
+    memories.addAll(validMemories);
   }
 }
 
