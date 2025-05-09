@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:got/map_page.dart';
 import 'package:got/memory_list_page.dart';
+import 'package:got/services/ad_service.dart';
 import 'package:got/services/permission_service.dart';
 import 'package:got/settings_page.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -19,8 +21,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    // 권한 요청은 빌드 완료 후에 실행
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowAd();
       _requestPermissions();
     });
 
@@ -41,6 +44,55 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _checkAndShowAd() async {
+    final adService = Provider.of<AdService>(context, listen: false);
+
+    // 광고가 필요한지 확인
+    if (await adService.shouldShowAdToday()) {
+      // 광고에 대한 안내 다이얼로그 표시
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (context) => AlertDialog(
+                title: Text('잠시만요!'),
+                content: Text(
+                  '곳 앱을 무료로 지속적으로 제공하기 위해 하루에 한 번 광고가 표시됩니다. '
+                  '소중한 이용에 감사드립니다.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('확인했습니다'),
+                  ),
+                ],
+              ),
+        );
+      }
+
+      // 잠시 대기 후 광고 표시 (사용자 경험 향상)
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // 광고가 로드되지 않았다면 로드 후 표시
+      if (!adService.isAdLoaded) {
+        adService.loadInterstitialAd();
+
+        // 광고 로드 대기 (최대 5초)
+        int attempts = 0;
+        while (!adService.isAdLoaded && attempts < 10) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          attempts++;
+        }
+      }
+
+      // 광고 표시
+      await adService.showAdIfNeeded(context);
+    }
   }
 
   Future<void> _requestPermissions() async {

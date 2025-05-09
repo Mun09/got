@@ -5,6 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum MediaQuality { low, medium, high }
 
 class SettingsService extends ChangeNotifier {
+  // 싱글톤 인스턴스
+  static final SettingsService _instance = SettingsService._internal();
+
+  // 팩토리 생성자
+  factory SettingsService() {
+    return _instance;
+  }
+
+  // 내부 생성자
+  SettingsService._internal();
+
   // 기본 설정값
   ThemeMode _themeMode = ThemeMode.system;
   double _defaultMapZoom = 15.0;
@@ -12,6 +23,7 @@ class SettingsService extends ChangeNotifier {
   MediaQuality _mediaQuality = MediaQuality.medium;
   String _userName = '';
   String _userEmail = '';
+  int _gridColumnCount = 2;
 
   // Getters
   ThemeMode get themeMode => _themeMode;
@@ -21,6 +33,8 @@ class SettingsService extends ChangeNotifier {
   bool get useCurrentLocationByDefault => _useCurrentLocationByDefault;
 
   MediaQuality get mediaQuality => _mediaQuality;
+
+  int get gridColumnCount => _gridColumnCount;
 
   int get imageQuality {
     int quality;
@@ -51,6 +65,7 @@ class SettingsService extends ChangeNotifier {
   static const String _mediaQualityKey = 'media_quality';
   static const String _userNameKey = 'user_name';
   static const String _userEmailKey = 'user_email';
+  static const String _gridColumnCountKey = 'grid_column_count';
 
   // 초기화
   Future<void> loadSettings() async {
@@ -73,6 +88,12 @@ class SettingsService extends ChangeNotifier {
     _userName = prefs.getString(_userNameKey) ?? '';
     _userEmail = prefs.getString(_userEmailKey) ?? '';
 
+    _gridColumnCount = prefs.getInt(_gridColumnCountKey) ?? 2;
+
+    print(
+      "Settings loaded: $_themeMode, $_defaultMapZoom, $_useCurrentLocationByDefault, $_mediaQuality, $_userName, $_userEmail, $_gridColumnCount",
+    );
+
     notifyListeners();
   }
 
@@ -89,6 +110,7 @@ class SettingsService extends ChangeNotifier {
     _defaultMapZoom = zoom;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_defaultMapZoomKey, zoom);
+    print("Default map zoom set to: $zoom");
     notifyListeners();
   }
 
@@ -115,6 +137,13 @@ class SettingsService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userNameKey, name);
     await prefs.setString(_userEmailKey, email);
+    notifyListeners();
+  }
+
+  Future<void> setGridColumnCount(int gridColumnCount) async {
+    _gridColumnCount = gridColumnCount;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_gridColumnCountKey, gridColumnCount);
     notifyListeners();
   }
 }

@@ -69,6 +69,10 @@
         </provider>
 
         <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-5829493135560636~8226663706" /> <!-- 앱 ID -->
+
+        <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />
 

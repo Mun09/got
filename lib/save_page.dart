@@ -140,7 +140,12 @@ class _FileSavePageState extends State<FileSavePage> {
     setState(() {
       _currentPreviewIndex = index;
       _isVideoInitialized = false;
+      _isMuted = true;
     });
+
+    if (_videoPlayerController != null) {
+      _videoPlayerController!.dispose();
+    }
 
     final currentFile = _selectedFiles[index];
     if (isVideoFile(currentFile.path)) {
@@ -699,7 +704,7 @@ class _FileSavePageState extends State<FileSavePage> {
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black12,

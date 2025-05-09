@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:got/main_page.dart';
+import 'package:got/services/ad_service.dart';
 import 'package:got/services/location_service.dart';
 import 'package:got/services/memory_service.dart';
 import 'package:got/services/settings_service.dart';
@@ -10,6 +12,12 @@ import 'package:provider/provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 테스트 모드 설정 (개발 중에만 사용)
+  // MobileAds.instance.updateRequestConfiguration(
+  //   RequestConfiguration(testDeviceIds: ['테스트_기기_ID']), // 실제 테스트 기기 ID로 교체
+  // );
+  MobileAds.instance.initialize();
+
   // 위치 서비스 초기화
   final locationService = LocationService();
   await locationService.initialize();
@@ -17,12 +25,20 @@ Future<void> main() async {
   // 위젯 서비스 초기화
   await WidgetService.initialize();
 
+  final settingsService = SettingsService();
+  await settingsService.loadSettings();
+
+  // 광고 서비스 초기화
+  final adService = AdService();
+  await adService.initialize();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LocationService()),
         ChangeNotifierProvider(create: (_) => MemoryService()),
         ChangeNotifierProvider(create: (_) => SettingsService()),
+        ChangeNotifierProvider(create: (_) => AdService()), // 추가
       ],
       child: MyApp(),
     ),
@@ -48,6 +64,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.white,
+        colorScheme: ColorScheme.light(
+          primary: Colors.black,
+          secondary: Colors.black,
+          surface: Colors.white,
+        ),
         scaffoldBackgroundColor: Colors.white,
         fontFamily: 'dosSamemul',
         textTheme: TextTheme(
@@ -74,10 +95,7 @@ class MyApp extends StatelessWidget {
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(foregroundColor: Colors.grey[800]),
         ),
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: Colors.grey[800],
-          foregroundColor: Colors.white,
-        ),
+
         dialogTheme: DialogTheme(
           backgroundColor: Colors.white,
           titleTextStyle: TextStyle(
@@ -100,6 +118,11 @@ class MyApp extends StatelessWidget {
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: Colors.grey[850],
+        colorScheme: ColorScheme.dark(
+          primary: Colors.white,
+          secondary: Colors.white,
+          surface: Colors.grey[850]!,
+        ),
         scaffoldBackgroundColor: Colors.grey[900],
         fontFamily: 'dosSamemul',
         textTheme: TextTheme(

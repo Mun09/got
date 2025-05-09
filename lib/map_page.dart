@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:got/services/googlemap_service.dart';
 import 'package:got/services/location_service.dart';
 import 'package:got/services/memory_service.dart';
 import 'package:got/services/settings_service.dart';
@@ -9,51 +10,64 @@ import 'package:got/services/settings_service.dart';
 import 'package:got/util/util.dart';
 import 'package:provider/provider.dart';
 
+import 'got_detail_page.dart';
+import 'memory_detail_page.dart';
+import 'models/got.dart';
 import 'models/memory.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({Key? key}) : super(key: key);
+  const MapScreen({super.key});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
-  late GoogleMapController? _mapController;
-  late bool _isMapReady = false;
-  Set<Marker> _markers = {};
-
-  // AutomaticKeepAliveClientMixin 구현
+  final _googleMapService = GoogleMapService();
+  final locationService = LocationService();
+  final memoryService = MemoryService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _refreshMap();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _mapController?.dispose();
+    _googleMapService.disposeMapController();
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // 앱이 재개될 때 지도 컨트롤러가 유효한지 확인
-    if (state == AppLifecycleState.resumed) {
-      if (_mapController != null && _isMapReady) {
-        _updateCameraPosition();
-      }
-    }
+  Future<void> didChangeDependencies() async {
+    super.didChangeDependencies();
+    final memoryService = MemoryService();
+    await _googleMapService.buildMarkers(memoryService.memories, (memory) {
+      // 마커 인포윈도우 탭 시 메모리 상세 정보로 이동
+      navigateToGOTDetail(memory);
+    });
+  }
+
+  Future<void> _updateMarkers() async {
+    final markers = await _googleMapService.buildMarkers(
+      memoryService.memories,
+      (memory) {
+        navigateToGOTDetail(memory);
+      },
+    );
+
+    setState(() {}); // 화면 갱신
   }
 
   // 지도 초기화
   void _onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
-    setState(() {
-      _isMapReady = true;
-    });
+    _googleMapService.setMapController(controller);
+
+    // GOT 기반 마커 생성
+    _updateMarkers();
 
     // 약간의 지연을 주어 지도가 완전히 로드된 후 카메라를 이동시킴
     Future.delayed(Duration(milliseconds: 300), _updateCameraPosition);
@@ -61,58 +75,13 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
   // 카메라 위치 업데이트
   void _updateCameraPosition() {
-    if (_mapController == null) return;
+    if (_googleMapService.mapController == null) return;
 
-    final locationService = Provider.of<LocationService>(
-      context,
-      listen: false,
-    );
     final position = locationService.currentPosition;
-
     if (position != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: LatLng(position.latitude, position.longitude),
-            zoom: 15,
-          ),
-        ),
+      _googleMapService.moveCameraToPosition(
+        LatLng(position.latitude, position.longitude),
       );
-    }
-  }
-
-  // 메모리별 마커 생성 함수 (비동기 처리)
-  Future<Marker?> _createMemoryMarker(Memory memory) async {
-    try {
-      if (memory.latitude == null || memory.longitude == null) return null;
-
-      return Marker(
-        markerId: MarkerId(memory.id),
-        position: LatLng(memory.latitude!, memory.longitude!),
-        infoWindow: InfoWindow(
-          title:
-              memory.memo.length > 20
-                  ? '${memory.memo.substring(0, 20)}...'
-                  : memory.memo,
-          snippet: formatDate(memory.createdAt),
-          onTap: () {
-            // 마커 탭 시 상세 정보로 이동
-            navigateToMemoryDetail(memory);
-          },
-        ),
-        onTap: () {
-          // 마커 탭 시 해당 위치로 카메라 이동
-          _mapController?.animateCamera(
-            CameraUpdate.newLatLngZoom(
-              LatLng(memory.latitude!, memory.longitude!),
-              17.0,
-            ),
-          );
-        },
-      );
-    } catch (e) {
-      print('마커 생성 오류: $e');
-      return null;
     }
   }
 
@@ -124,43 +93,60 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
   // 위치 재설정 및 마커 새로고침
   Future<void> _refreshMap() async {
-    final locationService = Provider.of<LocationService>(
-      context,
-      listen: false,
-    );
+    final locationService = LocationService();
 
     try {
       await locationService.getCurrentLocation();
       _updateCameraPosition();
+      setState(() {});
     } catch (e) {
       _showErrorSnackbar('위치 정보를 새로고침하는 중 오류가 발생했습니다');
     }
   }
 
+  // _refreshMap 및 _redrawMap 메서드는 다음과 같이 수정
+  Future<void> _redrawMap() async {
+    if (_googleMapService.mapController != null) {
+      // 먼저 위치 정보 새로고침
+      await _refreshMap();
+
+      // 메모리 서비스에서 데이터 다시 불러오기
+      await memoryService.loadMemories();
+
+      // GOT 기반 마커를 다시 생성
+      await _googleMapService.buildMarkers(memoryService.memories, (got) {
+        // 마커 인포윈도우 탭 시 GOT 상세 정보로 이동
+        navigateToGOTDetail(got);
+      });
+
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer2<LocationService, MemoryService>(
-      builder: (context, locationService, memoryService, child) {
+    // final locationService = LocationService();
+    return Consumer<MemoryService>(
+      builder: (context, memoryService, child) {
         // 메모리 로딩 상태 및 위치 로딩 상태 확인
         final isLoading = locationService.isLoading || memoryService.isLoading;
         final position = locationService.currentPosition;
 
-        // 비동기로 마커 생성
-        _buildMarkers(memoryService.memories);
+        print('drawing map...');
 
         // SettingsService에서 설정값 가져오기
-        final settingsService = Provider.of<SettingsService>(context);
+        final settingsService = SettingsService();
 
         return Scaffold(
           appBar: AppBar(
             title: Text('나의 곳 지도'),
             centerTitle: true,
             actions: [
-              IconButton(icon: Icon(Icons.refresh), onPressed: _refreshMap),
+              IconButton(icon: Icon(Icons.refresh), onPressed: _redrawMap),
             ],
           ),
           body:
-              (isLoading && !_isMapReady)
+              (isLoading)
                   ? Center(child: CircularProgressIndicator())
                   : Stack(
                     children: [
@@ -175,7 +161,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
                                   : LatLng(37.5665, 126.9780), // 기본값: 서울
                           zoom: settingsService.defaultMapZoom,
                         ),
-                        markers: _markers,
+                        markers: _googleMapService.markers,
                         myLocationEnabled: true,
                         myLocationButtonEnabled: false,
                         zoomControlsEnabled: false,
@@ -195,35 +181,169 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
             heroTag: 'map_fab',
             onPressed: _refreshMap,
             tooltip: '내 위치로 이동',
-            child: Icon(Icons.my_location),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            child: Icon(
+              Icons.my_location,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
           ),
         );
       },
     );
   }
 
-  // 메모리 목록에서 마커 생성
-  Future<void> _buildMarkers(List<Memory> memories) async {
-    // 이미 마커가 생성되었고 메모리 수가 같으면 다시 생성하지 않음
-
-    Set<Marker> newMarkers = {};
-    List<Future<Marker?>> markerFutures = [];
-
-    for (var memory in memories) {
-      if (memory.latitude != null && memory.longitude != null) {
-        markerFutures.add(_createMemoryMarker(memory));
-      }
-    }
-
-    final results = await Future.wait(markerFutures);
-    newMarkers.addAll(results.whereType<Marker>());
-
-    if (mounted) {
-      setState(() {
-        _markers = newMarkers;
-      });
-    }
+  void navigateToMemoryDetail(Memory memory) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // 메모 텍스트 및 날짜
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            memory.memo,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            formatDate(memory.createdAt),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                // 상세 페이지로 이동하는 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // 모달 닫기
+                      // 상세 페이지로 이동
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => MemoryDetailPage(memory: memory),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('상세 페이지로 이동'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
   }
 
-  void navigateToMemoryDetail(Memory memory) {}
+  void navigateToGOTDetail(GOT got) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // 위치 정보 및 기록 수
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            got.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            got.locationString ?? '알 수 없는 위치',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            '${got.memories.length}개의 기록',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                // 상세 페이지로 이동하는 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // 모달 닫기
+                      // GOT 상세 페이지로 이동
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GOTDetailPage(got: got),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('상세 페이지로 이동'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
 }
