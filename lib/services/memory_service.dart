@@ -32,9 +32,9 @@ class MemoryService extends ChangeNotifier {
 
   // 데이터베이스 초기화
   Future<Database> initDatabase() async {
-    if (_database != null && (await _database!.getVersion() >= 2)) {
-      return _database!;
-    }
+    // if (_database != null && (await _database!.getVersion() >= 2)) {
+    //   return _database!;
+    // }
     // 데이터베이스 파일 위치 설정
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = path_dep.join(documentsDirectory.path, 'memories.db');

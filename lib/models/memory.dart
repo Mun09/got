@@ -23,19 +23,6 @@ class Memory {
 
   bool get hasMedia => filePaths.isNotEmpty;
 
-  // JSON으로 변환
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'memoryName': memoryName,
-      'filePaths': filePaths,
-      'memo': memo,
-      'createdAt': createdAt.toIso8601String(),
-      'latitude': latitude,
-      'longitude': longitude,
-    };
-  }
-
   // memory.dart 또는 memory_service.dart에 추가
   Future<String?> getLocationString() async {
     if (_locationCache != null) return _locationCache;
@@ -99,16 +86,13 @@ class Memory {
     return null;
   }
 
-  // JSON에서 객체로 변환
-  factory Memory.fromJson(Map<String, dynamic> json) {
+  static Memory empty() {
     return Memory(
-      id: json['id'],
-      memoryName: json['memoryName'],
-      filePaths: json['filePaths'],
-      memo: json['memo'],
-      createdAt: DateTime.parse(json['createdAt']),
-      latitude: json['latitude'],
-      longitude: json['longitude'],
+      id: '',
+      createdAt: DateTime.now(),
+      filePaths: [],
+      memoryName: '',
+      memo: '',
     );
   }
 }

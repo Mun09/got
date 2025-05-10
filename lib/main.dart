@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:got/main_page.dart';
 import 'package:got/services/ad_service.dart';
+import 'package:got/services/got_service.dart';
 import 'package:got/services/location_service.dart';
 import 'package:got/services/memory_service.dart';
 import 'package:got/services/settings_service.dart';
@@ -36,6 +37,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => LocationService()),
         ChangeNotifierProvider(create: (_) => MemoryService()),
+        ChangeNotifierProvider(create: (_) => GOTService()),
         ChangeNotifierProvider(create: (_) => SettingsService()),
         ChangeNotifierProvider(create: (_) => AdService()), // 추가
       ],
@@ -50,7 +52,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // SettingsService를 가져와서 테마 모드 등 설정값을 적용
-    final settingsService = Provider.of<SettingsService>(context);
+    final settingsService = SettingsService();
 
     return MaterialApp(
       title: 'GOT 앱',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:got/save_page.dart';
+import 'package:got/services/got_service.dart';
 import 'package:got/services/memory_service.dart';
 import 'package:got/services/settings_service.dart';
 import 'package:provider/provider.dart';
@@ -46,7 +47,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
     });
 
     try {
-      final memoryService = Provider.of<MemoryService>(context, listen: false);
+      final memoryService = MemoryService();
       await memoryService.loadMemories();
 
       // 메모리 리스트를 GOT 그룹으로 변환
@@ -96,7 +97,9 @@ class _MemoryListPageState extends State<MemoryListPage> {
 
     if (confirmed != true) return;
 
-    final memoryService = Provider.of<MemoryService>(context, listen: false);
+    final memoryService = MemoryService();
+    final gotService = GOTService();
+
     int successCount = 0;
     int failCount = 0;
 
@@ -111,6 +114,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
           print('삭제 실패: ${memory.id}, 오류: $e');
         }
       }
+      gotService.deleteGOT(got.id);
     }
 
     // 선택 모드 종료 및 목록 새로고침
@@ -286,7 +290,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
     return _GOTItemWidget(
       key: ValueKey<String>('got_${got.id}'),
       got: got,
-      memory: representativeMemory,
+      memory: representativeMemory!,
       isSelected: _selectedGOTs.contains(got),
       isSelectionMode: _isSelectionMode,
       onTap:
@@ -340,13 +344,20 @@ class _MemoryListPageState extends State<MemoryListPage> {
                           return FutureBuilder<Widget>(
                             future: _buildGOTItem(got),
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return Center(child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
-                                  strokeWidth: 2,
-                                ));
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.grey[400]!,
+                                    ),
+                                    strokeWidth: 2,
+                                  ),
+                                );
                               } else if (snapshot.hasError) {
-                                return Center(child: Icon(Icons.error, color: Colors.grey));
+                                return Center(
+                                  child: Icon(Icons.error, color: Colors.grey),
+                                );
                               } else {
                                 return snapshot.data ?? Container();
                               }

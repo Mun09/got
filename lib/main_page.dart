@@ -8,7 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({Key? key}) : super(key: key);
+  const MainPage({super.key});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -25,6 +25,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowAd();
       _requestPermissions();
+
+      // 앱 시작 시 현재 선택된 탭의 애니메이션 시작
+      _animationControllers[_currentIndex].forward();
     });
 
     // 각 네비게이션 아이템별 애니메이션 컨트롤러 초기화

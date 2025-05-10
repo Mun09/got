@@ -23,6 +23,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
   late Memory _memory;
   bool _isEditing = false;
   late TextEditingController _memoController;
+  late TextEditingController _nameController; // 추가: 이름을 위한 컨트롤러
   late List<String> _editedFilePaths;
   double? _editedLatitude;
   double? _editedLongitude;
@@ -34,6 +35,9 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
 
     // 초기값은 위젯에서 받은 메모리로 설정
     _memory = widget.memory;
+    _nameController = TextEditingController(
+      text: _memory.memoryName,
+    ); // 추가: 이름 컨트롤러 초기화
     _memoController = TextEditingController(text: _memory.memo);
     _editedFilePaths = List.from(_memory.filePaths);
     _editedLatitude = _memory.latitude;
@@ -52,6 +56,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
       if (updatedMemory != null && mounted) {
         setState(() {
           _memory = updatedMemory;
+          _nameController.text = updatedMemory.memoryName; // 추가: 이름 업데이트
           _memoController.text = updatedMemory.memo;
           _editedFilePaths = List.from(updatedMemory.filePaths);
           _editedLatitude = updatedMemory.latitude;
@@ -65,7 +70,9 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
 
   @override
   void dispose() {
+    _nameController.dispose(); // 추가: 컨트롤러 해제
     _memoController.dispose();
+
     super.dispose();
   }
 
@@ -109,7 +116,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
       // 수정된 메모리 객체 생성
       Memory updatedMemory = Memory(
         id: widget.memory.id,
-        memoryName: _memory.memoryName,
+        memoryName: _nameController.text,
         filePaths: _editedFilePaths,
         memo: _memoController.text,
         createdAt: _memory.createdAt,
@@ -228,6 +235,17 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
                       children: [
                         // 미디어 영역
                         if (_isEditing) ...[
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: TextField(
+                              controller: _nameController,
+                              decoration: InputDecoration(
+                                labelText: '장소 이름',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+
                           // 미디어 편집 UI
                           Container(
                             height: 200,

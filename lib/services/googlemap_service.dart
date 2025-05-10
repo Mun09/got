@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/got.dart';
 import '../models/memory.dart';
 import 'dart:async';
+import 'got_service.dart';
 
 class GoogleMapService {
   // 싱글톤 인스턴스
@@ -24,9 +25,6 @@ class GoogleMapService {
 
   // 현재 지도 컨트롤러
   GoogleMapController? _mapController;
-
-  // GOT 서비스
-  final GOTService _gotService = GOTService();
 
   // 마커 세트 getter
   Set<Marker> get markers => _markers;
@@ -53,7 +51,9 @@ class GoogleMapService {
     Set<Marker> newMarkers = {};
 
     // 메모리 리스트를 GOT 그룹으로 변환
-    final gotGroups = await _gotService.organizeMemories(memories);
+    final gotService = GOTService();
+    final gotGroups = await gotService.organizeMemories(memories);
+    print(gotGroups.length);
 
     // 각 GOT에 대해 하나의 마커 생성
     for (int i = 0; i < gotGroups.length; i++) {
@@ -105,7 +105,7 @@ class GoogleMapService {
       final BitmapDescriptor customIcon = await _createCircleMarkerIcon(
         color,
         size.toDouble(),
-        text: got.memories.length > 1 ? '${got.memories.length}' : null,
+        text: '${got.memories.length}',
       );
 
       return Marker(
