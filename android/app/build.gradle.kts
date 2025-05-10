@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.got.got"
+    namespace = "com.mun09.got"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.got.got"
+        applicationId = "com.mun09.got"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

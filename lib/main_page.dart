@@ -23,8 +23,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAndShowAd();
       _requestPermissions();
+      _checkAndShowAd();
 
       // 앱 시작 시 현재 선택된 탭의 애니메이션 시작
       _animationControllers[_currentIndex].forward();

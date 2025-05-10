@@ -1,4 +1,4 @@
-package com.got.got
+package com.mun09.got
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
